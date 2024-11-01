@@ -45,18 +45,20 @@ jobs:
         run: |
           mkdir patched-fonts
           for font in fonts/**/*.ttf; do
-            ./FontPatcher/font-patcher  --complete --no-progressbars --quiet "$font" -o patched-fonts/
-            
+            echo "$font"
+            ./FontPatcher/font-patcher --complete --quiet --careful "$font" -o patched-fonts/
           done
 
       - name: 打包字体为 tar.gz 和 zip
         run: |
+          tree patched-fonts -L 2
           tar -czvf patched-fonts.tar.gz -C patched-fonts .
           zip -r patched-fonts.zip patched-fonts
 
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ env.LATEST_RELEASE }}
           files: |
             patched-fonts.tar.gz
             patched-fonts.zip
