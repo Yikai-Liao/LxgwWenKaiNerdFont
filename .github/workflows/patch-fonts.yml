@@ -44,13 +44,20 @@ jobs:
       - name: 对字体进行补丁处理
         run: |
           mkdir patched-fonts
-          for font in fonts/*.ttf; do
+          for font in fonts/**/*.ttf; do
             ./FontPatcher/font-patcher --complete "$font" -o patched-fonts/
           done
+
+      - name: 打包字体为 tar.gz 和 zip
+        run: |
+          tar -czvf patched-fonts.tar.gz -C patched-fonts .
+          zip -r patched-fonts.zip patched-fonts
 
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: patched-fonts/*
+          files: |
+            patched-fonts.tar.gz
+            patched-fonts.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
