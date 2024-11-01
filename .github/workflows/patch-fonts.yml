@@ -1,9 +1,9 @@
-name: Patch LXGW WenKai Fonts
+name: Patch WenKai Fonts
 
 on:
   schedule:
     - cron: '0 0 * * *' # Daily scheduled check, adjust as needed
-  workflow_dispatch: # Manually trigger workflow
+  workflow_dispatch: # Manually trigger the workflow
 
 jobs:
   check-and-patch:
@@ -12,73 +12,61 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v3
 
-      - name: Get latest LXGW WenKai version and check if already processed
+      - name: Get latest version
         id: fetch-release
         run: |
           LATEST_RELEASE=$(curl -s https://api.github.com/repos/lxgw/LxgwWenKai/releases/latest | jq -r .tag_name)
           echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_ENV
 
           if git tag | grep -q "$LATEST_RELEASE"; then
-            echo "Version $LATEST_RELEASE already processed."
+            echo "Version $LATEST_RELEASE has already been processed."
             exit 0
           fi
 
-      - name: Install all dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree
 
-      - name: Download LXGW WenKai fonts and display file structure
+      - name: Download fonts and show structure
         run: |
           mkdir fonts
           wget -q -O fonts/lxgw-wenkai.tar.gz https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/lxgw-wenkai-$LATEST_RELEASE.tar.gz
           tar -xzvf fonts/lxgw-wenkai.tar.gz -C fonts
           tree fonts -L 2
 
-      - name: Download and set up Font Patcher
+      - name: Set up Font Patcher
         run: |
           wget -q -O FontPatcher.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FontPatcher.zip
           unzip FontPatcher.zip -d FontPatcher
           chmod +x FontPatcher/font-patcher
 
-      - name: Create output directory
+      - name: Patch fonts
         run: |
-          mkdir -p lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
+          mkdir patched-fonts
+          for font in fonts/**/*.ttf; do
+            echo "Processing: $font"
+            ./FontPatcher/font-patcher --complete --quiet --careful "$font" -o patched-fonts/
+          done
 
-  patch-fonts:
-    needs: check-and-patch
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        font: ["$(find fonts -name '*.ttf')"]
-    steps:
-      - name: Checkout repository code
-        uses: actions/checkout@v3
-
-      - name: Patch the font
+      - name: Rename patched fonts folder
         run: |
-          ./FontPatcher/font-patcher --complete --quiet --careful "${{ matrix.font }}" -o lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}/
+          mv patched-fonts lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
 
-  package-and-release:
-    needs: patch-fonts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository code
-        uses: actions/checkout@v3
-
-      - name: Package fonts as tar.gz and zip
+      - name: Package fonts
         run: |
-          tree lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }} -L 2
-          tar -czvf lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz -C . lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
+          tar -czvf lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz -C lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }} .
           zip -r lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.zip lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          body: "Original LXGW WenKai release: https://github.com/lxgw/LxgwWenKai/releases/tag/${{ env.LATEST_RELEASE }}"
           tag_name: ${{ env.LATEST_RELEASE }}
           files: |
             lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz
             lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.zip
+          body: |
+            This release includes the patched LXGW WenKai fonts.
+            Original release: [LXGW WenKai v${{ env.LATEST_RELEASE }}](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases/tag/${{ env.LATEST_RELEASE }})
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
