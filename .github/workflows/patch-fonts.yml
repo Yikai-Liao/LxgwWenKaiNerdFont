@@ -45,7 +45,8 @@ jobs:
         run: |
           mkdir patched-fonts
           for font in fonts/**/*.ttf; do
-            ./FontPatcher/font-patcher --complete "$font" -o patched-fonts/
+            ./FontPatcher/font-patcher  --complete --no-progressbars "$font" -o patched-fonts/
+            
           done
 
       - name: 打包字体为 tar.gz 和 zip
