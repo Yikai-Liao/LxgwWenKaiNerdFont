@@ -28,8 +28,8 @@ jobs:
       - name: Download LXGW WenKai fonts
         run: |
           mkdir fonts
-          wget -O fonts/lxgw-wenkai.zip https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/LXGWWenKai.zip
-          unzip fonts/lxgw-wenkai.zip -d fonts
+          wget -O fonts/lxgw-wenkai.tar.gz https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/lxgw-wenkai-$LATEST_RELEASE.tar.gz
+          tar -xzvf fonts/lxgw-wenkai.tar.gz -C fonts
 
       - name: Install dependencies
         run: |
