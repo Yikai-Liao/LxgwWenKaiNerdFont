@@ -2,65 +2,83 @@ name: Patch LXGW WenKai Fonts
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 每天定时检查，您可以根据需求调整
-  workflow_dispatch: # 手动触发工作流
+    - cron: '0 0 * * *' # Daily scheduled check, adjust as needed
+  workflow_dispatch: # Manually trigger workflow
 
 jobs:
   check-and-patch:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出仓库代码
+      - name: Checkout repository code
         uses: actions/checkout@v3
 
-      - name: 获取最新的 LXGW WenKai 版本并检查是否已处理
+      - name: Get latest LXGW WenKai version and check if already processed
         id: fetch-release
         run: |
           LATEST_RELEASE=$(curl -s https://api.github.com/repos/lxgw/LxgwWenKai/releases/latest | jq -r .tag_name)
           echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_ENV
 
           if git tag | grep -q "$LATEST_RELEASE"; then
-            echo "版本 $LATEST_RELEASE 已处理。"
+            echo "Version $LATEST_RELEASE already processed."
             exit 0
           fi
 
-      - name: 安装所有依赖项
+      - name: Install all dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree
 
-      - name: 下载 LXGW WenKai 字体并显示文件结构
+      - name: Download LXGW WenKai fonts and display file structure
         run: |
           mkdir fonts
           wget -q -O fonts/lxgw-wenkai.tar.gz https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/lxgw-wenkai-$LATEST_RELEASE.tar.gz
           tar -xzvf fonts/lxgw-wenkai.tar.gz -C fonts
           tree fonts -L 2
 
-      - name: 下载并设置 Font Patcher
+      - name: Download and set up Font Patcher
         run: |
           wget -q -O FontPatcher.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FontPatcher.zip
           unzip FontPatcher.zip -d FontPatcher
           chmod +x FontPatcher/font-patcher
 
-      - name: 对字体进行补丁处理
+      - name: Create output directory
         run: |
-          mkdir patched-fonts
-          for font in fonts/**/*.ttf; do
-            echo "$font"
-            ./FontPatcher/font-patcher --complete --quiet --careful "$font" -o patched-fonts/
-          done
+          mkdir -p lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
 
-      - name: 打包字体为 tar.gz 和 zip
+  patch-fonts:
+    needs: check-and-patch
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        font: ["$(find fonts -name '*.ttf')"]
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+
+      - name: Patch the font
         run: |
-          tree patched-fonts -L 2
-          tar -czvf patched-fonts.tar.gz -C patched-fonts .
-          zip -r patched-fonts.zip patched-fonts
+          ./FontPatcher/font-patcher --complete --quiet --careful "${{ matrix.font }}" -o lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}/
 
-      - name: 创建 GitHub Release
+  package-and-release:
+    needs: patch-fonts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+
+      - name: Package fonts as tar.gz and zip
+        run: |
+          tree lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }} -L 2
+          tar -czvf lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz -C . lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
+          zip -r lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.zip lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          body: "Original LXGW WenKai release: https://github.com/lxgw/LxgwWenKai/releases/tag/${{ env.LATEST_RELEASE }}"
           tag_name: ${{ env.LATEST_RELEASE }}
           files: |
-            patched-fonts.tar.gz
-            patched-fonts.zip
+            lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz
+            lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
