@@ -58,15 +58,15 @@ jobs:
           tar -czvf lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz -C lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }} .
           zip -r lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.zip lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          body: |
+            This release includes the patched LXGW WenKai fonts.
+            Original LXGW WenKai release: https://github.com/lxgw/LxgwWenKai/releases/tag/${{ env.LATEST_RELEASE }}
           tag_name: ${{ env.LATEST_RELEASE }}
           files: |
             lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.tar.gz
             lxgw-wenkai-nerd-${{ env.LATEST_RELEASE }}.zip
-          body: |
-            This release includes the patched LXGW WenKai fonts.
-            Original release: [LXGW WenKai v${{ env.LATEST_RELEASE }}](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases/tag/${{ env.LATEST_RELEASE }})
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
