@@ -1,7 +1,7 @@
 # Maintainer: desemai <desemai@outlook.com>
 
 pkgname=ttf-lxgw-wenkai-nerd
-pkgver=1.501
+pkgver=1.510
 pkgrel=1
 pkgdesc="LxgwWenKai with latest updated nerd font patch."
 arch=('any')
@@ -13,7 +13,7 @@ source=("$url/releases/download/v$pkgver/lxgw-wenkai-nerd.tar.gz"
         "repo::git+$url.git"
 )
 
-sha256sums=('fffe2377666839fb8a85c1d3d71eb70bebf4b65be76ff2514087eda5fc67d952'
+sha256sums=('2908e0eead51c8e404648279dbda70a951976c25300938976eda738db9f2ad57'
             'SKIP'
 )
 
