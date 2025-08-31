@@ -4,14 +4,13 @@ set -euo pipefail
 pkgver="$1"
 tag="$2"
 
-# 配置全局git用户信息（避免权限问题）
+# 配置全局git用户信息
 git config --global user.name "github-actions[bot]"
 git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 for dir in ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd; do
     echo "Processing $dir..."
     
-    # 检查目录是否存在
     if [ ! -d "$dir" ]; then
         echo "Directory $dir not found, skipping..."
         continue
@@ -27,7 +26,10 @@ for dir in ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd; do
             exit 0
         fi
         
-        # 检查是否需要提交（比较工作目录和暂存区）
+        # 修复文件所有权 - 这是关键！
+        sudo chown -R "$(id -u):$(id -g)" . || true
+        
+        # 检查是否需要提交
         if [ -f .SRCINFO ] && git diff --quiet HEAD -- PKGBUILD .SRCINFO 2>/dev/null; then
             echo "No change for $dir"
             exit 0
