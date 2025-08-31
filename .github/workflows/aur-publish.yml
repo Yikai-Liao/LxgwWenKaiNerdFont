@@ -26,9 +26,30 @@ jobs:
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: bash .github/scripts/resolve-tag.sh
 
-      - name: Download asset & license
+      - name: Get asset info & license
         id: dl
-        run: bash .github/scripts/download-assets.sh '${{ steps.vars.outputs.tag }}' 'lxgw-wenkai-nerd.zip' '${{ github.repository }}'
+        run: |
+          set -euo pipefail
+          tag='${{ steps.vars.outputs.tag }}'
+          asset='lxgw-wenkai-nerd.zip'
+          repo='${{ github.repository }}'
+          url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+          
+          # 只获取SHA256，不下载大文件
+          echo "Getting SHA256 for $url"
+          sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
+          
+          # 下载许可证文件
+          curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
+          sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
+          
+          echo "Asset SHA256: $sha_asset"
+          echo "License SHA256: $sha_license"
+          
+          # 输出到GitHub Actions
+          echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
+          echo "sha_license=$sha_license" >> "$GITHUB_OUTPUT"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
 
       - name: Generate PKGBUILD (normal)
         run: bash .github/scripts/generate-pkgbuild.sh 'ttf-lxgw-wenkai-nerd' '${{ steps.vars.outputs.pkgver }}' '${{ steps.dl.outputs.asset }}' '${{ steps.dl.outputs.sha_asset }}' '${{ steps.dl.outputs.sha_license }}' '${{ steps.vars.outputs.tag }}' 'false'
@@ -38,7 +59,6 @@ jobs:
         with:
           pkgname: ttf-lxgw-wenkai-nerd
           pkgbuild: ttf-lxgw-wenkai-nerd/PKGBUILD
-          assets: OFL.txt
           updpkgsums: true
           commit_username: github-actions[bot]
           commit_email: 41898282+github-actions[bot]@users.noreply.github.com
@@ -63,9 +83,30 @@ jobs:
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: bash .github/scripts/resolve-tag.sh
 
-      - name: Download asset & license
+      - name: Get asset info & license
         id: dl
-        run: bash .github/scripts/download-assets.sh '${{ steps.vars.outputs.tag }}' 'lxgw-wenkai-nerd.zip' '${{ github.repository }}'
+        run: |
+          set -euo pipefail
+          tag='${{ steps.vars.outputs.tag }}'
+          asset='lxgw-wenkai-nerd.zip'
+          repo='${{ github.repository }}'
+          url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+          
+          # 只获取SHA256，不下载大文件
+          echo "Getting SHA256 for $url"
+          sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
+          
+          # 下载许可证文件
+          curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
+          sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
+          
+          echo "Asset SHA256: $sha_asset"
+          echo "License SHA256: $sha_license"
+          
+          # 输出到GitHub Actions
+          echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
+          echo "sha_license=$sha_license" >> "$GITHUB_OUTPUT"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
 
       - name: Generate PKGBUILD (mono)
         run: bash .github/scripts/generate-pkgbuild.sh 'ttf-lxgw-wenkai-mono-nerd' '${{ steps.vars.outputs.pkgver }}' '${{ steps.dl.outputs.asset }}' '${{ steps.dl.outputs.sha_asset }}' '${{ steps.dl.outputs.sha_license }}' '${{ steps.vars.outputs.tag }}' 'true'
@@ -75,7 +116,6 @@ jobs:
         with:
           pkgname: ttf-lxgw-wenkai-mono-nerd
           pkgbuild: ttf-lxgw-wenkai-mono-nerd/PKGBUILD
-          assets: OFL.txt
           updpkgsums: true
           commit_username: github-actions[bot]
           commit_email: 41898282+github-actions[bot]@users.noreply.github.com

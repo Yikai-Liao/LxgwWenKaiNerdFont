@@ -9,11 +9,6 @@
 - **输出**: `tag` 和 `pkgver` 到 GitHub Actions 输出
 - **回退逻辑**: release 事件 → 最新 release → tags 列表
 
-### download-assets.sh
-- **功能**: 下载 release 资产文件和许可证文件
-- **参数**: `tag` `asset_name` `repository`
-- **输出**: 文件的 SHA256 校验和到 GitHub Actions 输出
-
 ### generate-pkgbuild.sh
 - **功能**: 为指定包生成 PKGBUILD 文件
 - **参数**: `pkgname` `pkgver` `asset` `sha_asset` `sha_license` `tag` `is_mono`
@@ -33,9 +28,10 @@ workflow 使用成熟的第三方 Action `KSXGitHub/github-actions-deploy-aur@v4
 这些脚本通过 GitHub Actions workflow (aur-publish.yml) 自动调用。每当有新的 release 发布时，workflow 会：
 
 1. 检测最新版本 (resolve-tag.sh)
-2. 下载资产和许可证 (download-assets.sh)
-3. 为普通和 mono 变体生成 PKGBUILD (generate-pkgbuild.sh)
-4. 使用第三方 Action 发布到 AUR
+2. 获取资产文件的SHA256（**不下载**大文件，避免AUR大小限制）
+3. 下载许可证文件
+4. 为普通和 mono 变体生成 PKGBUILD (generate-pkgbuild.sh)
+5. 使用第三方 Action 发布到 AUR
 
 ## 权限要求
 
@@ -48,3 +44,4 @@ workflow 使用成熟的第三方 Action `KSXGitHub/github-actions-deploy-aur@v4
 - **简洁性**: 大幅减少自定义脚本代码
 - **并行处理**: 普通和 mono 包可以并行发布
 - **自动校验**: Action 自动处理 `updpkgsums` 和 `.SRCINFO` 生成
+- **符合AUR规范**: 不提交源文件到AUR仓库，避免大小限制问题
