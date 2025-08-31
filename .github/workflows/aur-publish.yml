@@ -3,21 +3,12 @@ name: Publish AUR Packages
 on:
   release:
     types: [published]
-  workflow_dispatch:
-
-concurrency:
-  group: aur-publish-${{ github.ref_name }}
-  cancel-in-progress: false
-
-permissions:
-  contents: read
-
-jobs:
-  publish:
-    if: github.event.release.draft == false && github.event.release.prerelease == false
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
+  jobs:
+    publish:
+      name: publish fonts
+      if: github.event.release.draft == false && github.event.release.prerelease == false
+      runs-on: ubuntu-latest
+      steps:
       matrix:
         include:
           - pkg: ttf-lxgw-wenkai-nerd
@@ -49,7 +40,7 @@ jobs:
             echo "No releases; fallback to tags list..." >&2
             TAG=$(curl -fsSL -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
               -H 'Accept: application/vnd.github+json' \
-              'https://api.github.com/repos/${{ github.repository }}/tags?per_page=100' \
+            echo "Will publish both normal & mono packages from single asset."
               | jq -r '.[].name' | grep -E '^[vV]?[0-9]' | sed 's/^v//' | sort -V | tail -n1)
             if [ -n "$TAG" ]; then TAG="v$TAG"; fi
           fi
@@ -67,37 +58,35 @@ jobs:
           tag='${{ steps.vars.outputs.tag }}'
           asset='${{ matrix.asset }}'
           repo='${{ github.repository }}'
-          asset_url="https://github.com/${repo}/releases/download/${tag}/${asset}"
-          echo "Attempting to download asset: $asset_url"
-          tries=0; max=12; sleep_seconds=10
-          until [ $tries -ge $max ]; do
-            status=$(curl -o /dev/null -w '%{http_code}' -Ls "$asset_url" || true)
-            if [ "$status" = "200" ]; then
-              curl -fL "$asset_url" -o "$asset"
-              echo "Asset downloaded (HTTP 200)."; break
-            fi
-            echo "Attempt $((tries+1))/$max: asset not ready (HTTP $status). Listing release assets..." >&2
-            curl -sSL -H 'Accept: application/vnd.github+json' \
-              -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
-              "https://api.github.com/repos/${repo}/releases/tags/${tag}" | jq -r '.assets[]?.name' || true
-            tries=$((tries+1))
-            if [ $tries -lt $max ]; then sleep $sleep_seconds; fi
-          done
-          if [ ! -s "$asset" ]; then
-            echo "ERROR: Asset $asset still not available after $max attempts." >&2
-            exit 22
-          fi
+          name: Publish AUR Packages
+
+          on:
+            release:
+              types: [published]
+            workflow_dispatch:
+
+          permissions:
+            contents: read
+
+          jobs:
+            publish:
+              name: publish fonts
+              if: github.event.release.draft == false && github.event.release.prerelease == false
+              runs-on: ubuntu-latest
+              steps:
           curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
           sha_asset=$(sha256sum "${asset}" | cut -d' ' -f1)
           sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
           echo "sha_asset=$sha_asset" >> $GITHUB_OUTPUT
           echo "sha_license=$sha_license" >> $GITHUB_OUTPUT
           echo "Asset SHA256: $sha_asset"; echo "License SHA256: $sha_license"
-      - name: Setup SSH
-        run: |
-          set -euo pipefail
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
+        - name: Clone AUR repos
+          run: |
+            set -euo pipefail
+            for p in ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd; do
+              git clone "ssh://aur@aur.archlinux.org/${p}.git" "$p" || { echo "AUR repo $p missing" >&2; exit 1; }
+              ls -la "$p";
+            done
           chmod 600 ~/.ssh/aur
           printf 'Host aur.archlinux.org\n  HostName aur.archlinux.org\n  User aur\n  IdentityFile ~/.ssh/aur\n  StrictHostKeyChecking accept-new\n' > ~/.ssh/config
 
@@ -125,6 +114,38 @@ jobs:
             old_rel=$(grep -E '^pkgrel=' PKGBUILD | head -n1 | cut -d= -f2)
             if [ "$old_ver" = "$pkgver" ] && [[ $old_rel =~ ^[0-9]+$ ]]; then
               pkgrel=$(( old_rel + 1 ))
+  # Maintainer: lyk <lyk-boya@outlook.com>
+  pkgname=${pkgname}
+  pkgver=${pkgver}
+  pkgrel=${pkgrel}
+  pkgdesc="${desc}"
+  arch=('any')
+  url="https://github.com/Yikai-Liao/LxgwWenKaiNerdFont"
+  license=('OFL')
+  depends=()
+  makedepends=('unzip')
+  _tag='${tag}'
+  source=("https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases/download/${_tag}/${asset}" \
+          "OFL.txt::https://raw.githubusercontent.com/Yikai-Liao/LxgwWenKaiNerdFont/${_tag}/OFL.txt")
+  sha256sums=('${sha_asset}' '${sha_license}')
+
+  package() {
+    cd "${srcdir}"
+    mkdir -p "${pkgdir}/usr/share/fonts/TTF"
+    unzip -q "${srcdir}/${asset}" -d extracted
+    if [ "$mono_flag" = mono ]; then
+      find extracted -type f -name '*MonoNerdFont-*.ttf' -exec install -Dm644 {} "${pkgdir}/usr/share/fonts/TTF/" \;
+    else
+      find extracted -type f -name '*NerdFont-*.ttf' ! -name '*MonoNerdFont-*' -exec install -Dm644 {} "${pkgdir}/usr/share/fonts/TTF/" \;
+    fi
+    install -Dm644 OFL.txt "${pkgdir}/usr/share/licenses/${pkgname}/OFL.txt"
+  }
+  EOF
+              echo "Generated PKGBUILD for $pkgname:"; sed -n '1,120p' PKGBUILD
+              cd - >/dev/null
+            }
+            gen ttf-lxgw-wenkai-nerd "LXGW WenKai patched with Nerd Font glyphs" normal
+            gen ttf-lxgw-wenkai-mono-nerd "LXGW WenKai Mono patched with Nerd Font glyphs" mono
               echo "Same pkgver detected; bumping pkgrel to $pkgrel"
             fi
           fi
@@ -154,7 +175,7 @@ jobs:
 
       - name: Generate .SRCINFO
         working-directory: aurpkg
-        run: |
+            echo "Published both packages version ${{ steps.vars.outputs.pkgver }} from asset ${'${{ steps.dl.outputs.asset }}'}"
           set -euo pipefail
           docker run --rm -v "$PWD":/pkg -w /pkg archlinux:base bash -lc "pacman -Sy --noconfirm base-devel unzip git && useradd build && chown -R build . && su build -c 'makepkg --printsrcinfo > .SRCINFO'"
           echo '.SRCINFO preview:'; sed -n '1,150p' .SRCINFO
