@@ -12,6 +12,16 @@ if [ "${GITHUB_EVENT_NAME:-}" = 'release' ]; then
     echo "Got tag from release event: $TAG"
 fi
 
+# Try to get tag from repository_dispatch event (CLIENT_PAYLOAD)
+if [ -z "$TAG" ] && [ "${GITHUB_EVENT_NAME:-}" = 'repository_dispatch' ]; then
+    if [ -n "${CLIENT_PAYLOAD:-}" ] && [ "$CLIENT_PAYLOAD" != "null" ]; then
+        TAG=$(echo "$CLIENT_PAYLOAD" | jq -r '.tag_name // empty' || true)
+        if [ -n "$TAG" ] && [ "$TAG" != "null" ]; then
+            echo "Got tag from repository_dispatch payload: $TAG"
+        fi
+    fi
+fi
+
 # Fallback to latest release
 if [ -z "$TAG" ]; then
     echo "Query latest release via API..." >&2
