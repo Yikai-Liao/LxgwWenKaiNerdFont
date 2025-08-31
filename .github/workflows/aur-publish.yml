@@ -45,7 +45,26 @@ jobs:
           tag='${{ steps.vars.outputs.tag }}'
           asset='${{ matrix.asset }}'
           repo='${{ github.repository }}'
-          curl -fL "https://github.com/${repo}/releases/download/${tag}/${asset}" -o "${asset}"
+          asset_url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+          echo "Attempting to download asset: $asset_url"
+          tries=0; max=12; sleep_seconds=10
+          until [ $tries -ge $max ]; do
+            status=$(curl -o /dev/null -w '%{http_code}' -Ls "$asset_url" || true)
+            if [ "$status" = "200" ]; then
+              curl -fL "$asset_url" -o "$asset"
+              echo "Asset downloaded (HTTP 200)."; break
+            fi
+            echo "Attempt $((tries+1))/$max: asset not ready (HTTP $status). Listing release assets..." >&2
+            curl -sSL -H 'Accept: application/vnd.github+json' \
+              -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+              "https://api.github.com/repos/${repo}/releases/tags/${tag}" | jq -r '.assets[]?.name' || true
+            tries=$((tries+1))
+            if [ $tries -lt $max ]; then sleep $sleep_seconds; fi
+          done
+          if [ ! -s "$asset" ]; then
+            echo "ERROR: Asset $asset still not available after $max attempts." >&2
+            exit 22
+          fi
           curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
           sha_asset=$(sha256sum "${asset}" | cut -d' ' -f1)
           sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
