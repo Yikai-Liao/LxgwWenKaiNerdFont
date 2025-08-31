@@ -35,18 +35,18 @@ jobs:
           repo='${{ github.repository }}'
           url="https://github.com/${repo}/releases/download/${tag}/${asset}"
           
-          # 只获取SHA256，不下载大文件
+          # Only get SHA256 without downloading large files
           echo "Getting SHA256 for $url"
           sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
           
-          # 下载许可证文件
+          # Download license file
           curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
           sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
           
           echo "Asset SHA256: $sha_asset"
           echo "License SHA256: $sha_license"
           
-          # 输出到GitHub Actions
+          # Output to GitHub Actions
           echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
           echo "sha_license=$sha_license" >> "$GITHUB_OUTPUT"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"
@@ -92,18 +92,18 @@ jobs:
           repo='${{ github.repository }}'
           url="https://github.com/${repo}/releases/download/${tag}/${asset}"
           
-          # 只获取SHA256，不下载大文件
+          # Only get SHA256 without downloading large files
           echo "Getting SHA256 for $url"
           sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
           
-          # 下载许可证文件
+          # Download license file
           curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
           sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
           
           echo "Asset SHA256: $sha_asset"
           echo "License SHA256: $sha_license"
           
-          # 输出到GitHub Actions
+          # Output to GitHub Actions
           echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
           echo "sha_license=$sha_license" >> "$GITHUB_OUTPUT"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"

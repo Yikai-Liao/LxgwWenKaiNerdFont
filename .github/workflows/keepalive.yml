@@ -2,7 +2,7 @@ name: Keepalive (Prevent Schedule Disable)
 
 on:
   schedule:
-    - cron: '43 3 * * 1'   # 每周一 03:43 UTC 与主任务错开并避开整点
+    - cron: '43 3 * * 1'   # Every Monday 03:43 UTC, offset from main tasks and avoiding on-the-hour
   workflow_dispatch:
 
 permissions:

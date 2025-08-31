@@ -1,18 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-# 安装依赖
+# Install dependencies
 command -v jq >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y jq; }
 
 TAG=""
 
-# 尝试从release事件获取tag
+# Try to get tag from release event
 if [ "${GITHUB_EVENT_NAME:-}" = 'release' ]; then 
     TAG="${RELEASE_TAG_NAME:-}"
     echo "Got tag from release event: $TAG"
 fi
 
-# 回退到最新release
+# Fallback to latest release
 if [ -z "$TAG" ]; then
     echo "Query latest release via API..." >&2
     TAG=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -21,7 +21,7 @@ if [ -z "$TAG" ]; then
     [ "$TAG" = "null" ] && TAG=""
 fi
 
-# 回退到tags列表
+# Fallback to tags list
 if [ -z "$TAG" ]; then
     echo "No releases; fallback to tags list..." >&2
     TAG=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -39,6 +39,6 @@ fi
 PKGVER=${TAG#v}
 echo "Resolved tag=$TAG pkgver=$PKGVER"
 
-# 输出到GitHub Actions
+# Output to GitHub Actions
 echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 echo "pkgver=$PKGVER" >> "$GITHUB_OUTPUT"

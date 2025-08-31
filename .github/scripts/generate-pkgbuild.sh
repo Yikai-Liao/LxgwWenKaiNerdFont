@@ -9,11 +9,11 @@ sha_license="$5"
 tag="$6"
 is_mono="$7"
 
-# 创建包目录
+# Create package directory
 mkdir -p "$pkgname"
 cd "$pkgname"
 
-# 确定描述和安装模式
+# Determine description and installation pattern
 if [ "$is_mono" = "true" ]; then
     pkgdesc="LXGW WenKai Mono patched with Nerd Font glyphs"
     find_pattern='*MonoNerdFont-*.ttf'
@@ -22,7 +22,7 @@ else
     find_pattern='*NerdFont-*.ttf ! -name *MonoNerdFont-*'
 fi
 
-# 生成PKGBUILD
+# Generate PKGBUILD
 cat > PKGBUILD <<EOF
 # Maintainer: lyk <lyk-boya@outlook.com>
 pkgname=$pkgname
