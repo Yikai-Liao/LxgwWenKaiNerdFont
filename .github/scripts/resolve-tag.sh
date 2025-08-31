@@ -47,6 +47,10 @@ if [ -z "$TAG" ]; then
 fi
 
 PKGVER=${TAG#v}
+# Handle cases where tag might have multiple 'v' prefixes (e.g., vv1.520)
+while [[ "$PKGVER" =~ ^v ]]; do
+    PKGVER=${PKGVER#v}
+done
 echo "Resolved tag=$TAG pkgver=$PKGVER"
 
 # Output to GitHub Actions

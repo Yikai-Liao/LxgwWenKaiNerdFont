@@ -29,35 +29,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree jq unzip
 
-      - name: Get upstream latest version
+      - name: Get latest version
         id: fetch_release
-        env:
-          GH_REPO: lxgw/LxgwWenKai
         run: |
-          set -euo pipefail
-          echo "UTC now: $(date -u '+%Y-%m-%d %H:%M:%S')"
-          api_json=$(curl -fsSL https://api.github.com/repos/${GH_REPO}/releases/latest)
-          LATEST_RELEASE=$(echo "$api_json" | jq -r .tag_name)
-          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" = "null" ]; then
-            echo "Cannot parse latest release tag" >&2
-            exit 1
-          fi
-          echo "Upstream latest tag: $LATEST_RELEASE"
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/lxgw/LxgwWenKai/releases/latest | jq -r .tag_name)
           echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_ENV
-          echo "latest=$LATEST_RELEASE" >> $GITHUB_OUTPUT
 
-          # Check if current repo already has a release with the same name (avoid duplicates)
-          existing_release=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -fsSL \
-            https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_RELEASE || true)
-          if echo "$existing_release" | grep -q '"tag_name"'; then
-            echo "Release $LATEST_RELEASE already exists in current repo, skip.";
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Alternative: if release doesn't exist but tag already exists locally (or remotely)
-          if git tag --list | grep -qx "$LATEST_RELEASE"; then
-            echo "Tag $LATEST_RELEASE already exists (without release), skip.";
+          if git tag | grep -q "$LATEST_RELEASE"; then
+            echo "Version $LATEST_RELEASE has already been processed."
             echo "skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -69,7 +48,6 @@ jobs:
       - name: Download fonts and show structure
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
-          set -euo pipefail
           mkdir -p fonts
           wget -q -O fonts/lxgw-wenkai.tar.gz https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/lxgw-wenkai-$LATEST_RELEASE.tar.gz
           tar -xzvf fonts/lxgw-wenkai.tar.gz -C fonts
@@ -120,10 +98,10 @@ jobs:
         id: release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.fetch_release.outputs.latest }}
-          name: v${{ steps.fetch_release.outputs.latest }}
+          tag_name: ${{ env.LATEST_RELEASE }}
+          name: ${{ env.LATEST_RELEASE }}
           body: |
-            Release v${{ steps.fetch_release.outputs.latest }} - LxgwWenKai Nerd Font
+            Release ${{ env.LATEST_RELEASE }} - LxgwWenKai Nerd Font
 
             This release includes all 6 font variants (Light, Regular, Medium × Proportional, Monospace) patched with Nerd Fonts.
 
@@ -135,7 +113,7 @@ jobs:
             - LXGWWenKaiMonoNerdFont-Regular.ttf
             - LXGWWenKaiMonoNerdFont-Medium.ttf
 
-            Based on LxgwWenKai v${{ steps.fetch_release.outputs.latest }}
+            Based on LxgwWenKai ${{ env.LATEST_RELEASE }}
           files: |
             lxgw-wenkai-nerd.zip
             lxgw-wenkai-nerd.tar.gz
@@ -154,7 +132,7 @@ jobs:
             -d '{
               "event_type": "aur-publish",
               "client_payload": {
-                "tag_name": "v${{ steps.fetch_release.outputs.latest }}",
-                "release_url": "https://github.com/${{ github.repository }}/releases/tag/v${{ steps.fetch_release.outputs.latest }}"
+                "tag_name": "${{ env.LATEST_RELEASE }}",
+                "release_url": "https://github.com/${{ github.repository }}/releases/tag/${{ env.LATEST_RELEASE }}"
               }
             }'
