@@ -2,7 +2,7 @@ name: Patch WenKai Fonts
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 00:00 UTC 每日
+    - cron: '17 3 * * 1' # 03:17 UTC 每周一（避开整点高峰 & 北美/欧洲集中时段）
   workflow_dispatch:
 
 # 避免并发重复跑（手动+定时同触发）
@@ -22,6 +22,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 需要全部 tag 做重复检测
+
+      - name: Jitter (random delay up to 10m)
+        run: |
+          secs=$(( RANDOM % 600 ))
+          echo "Sleeping $secs seconds to avoid congestion..."
+          sleep $secs
 
       - name: Install dependencies
         run: |
