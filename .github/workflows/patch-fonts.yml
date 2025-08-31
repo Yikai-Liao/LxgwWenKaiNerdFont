@@ -23,12 +23,6 @@ jobs:
         with:
           fetch-depth: 0  # Need all tags for duplicate detection
 
-      - name: Jitter (random delay up to 10m)
-        run: |
-          secs=$(( RANDOM % 600 ))
-          echo "Sleeping $secs seconds to avoid congestion..."
-          sleep $secs
-
       - name: Install dependencies
         run: |
           set -eu
