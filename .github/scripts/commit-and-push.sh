@@ -21,22 +21,32 @@ for dir in ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd; do
     (
         cd "$dir"
         
-        # 检查是否有变更
-        if git diff --quiet --exit-code PKGBUILD .SRCINFO 2>/dev/null; then
+        # 确保文件存在
+        if [ ! -f PKGBUILD ]; then
+            echo "PKGBUILD not found in $dir, skipping..."
+            exit 0
+        fi
+        
+        # 检查是否需要提交（比较工作目录和暂存区）
+        if [ -f .SRCINFO ] && git diff --quiet HEAD -- PKGBUILD .SRCINFO 2>/dev/null; then
             echo "No change for $dir"
             exit 0
         fi
         
         # 显示变更内容
         echo "Changes detected in $dir:"
-        git diff --name-only PKGBUILD .SRCINFO 2>/dev/null || true
+        ls -la PKGBUILD .SRCINFO 2>/dev/null || true
         
-        # 提交并推送
+        # 添加文件到暂存区
         git add PKGBUILD .SRCINFO
-        git commit -m "update: $dir to $pkgver (release $tag)"
-        git push || true
         
-        echo "Updated $dir to version $pkgver"
+        # 提交变更
+        git commit -m "update: $dir to $pkgver (release $tag)"
+        
+        # 推送到远程
+        git push
+        
+        echo "Successfully updated $dir to version $pkgver"
     )
 done
 

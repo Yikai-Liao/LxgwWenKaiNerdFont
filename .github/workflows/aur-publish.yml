@@ -37,8 +37,13 @@ jobs:
 
       - name: Clone AUR repos
         run: |
+          # 设置文件权限
+          umask 022
           for p in ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd; do
+            echo "Cloning $p..."
             git clone "ssh://aur@aur.archlinux.org/${p}.git" "$p" || { echo "AUR repo $p missing" >&2; exit 1; }
+            # 确保目录权限正确
+            chmod -R u+w "$p"
           done
 
       - name: Generate PKGBUILD (normal)
