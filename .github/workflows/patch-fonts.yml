@@ -93,22 +93,47 @@ jobs:
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          mkdir -p patched-fonts
-          # 使用 find 更可靠 (避免 ** 需要 globstar)
+          mkdir -p patched-fonts patched-fonts-mono
           while IFS= read -r -d '' font; do
-            echo "Processing: $font"
+            fname=$(basename "$font")
+            echo "Processing: $fname (normal)"
             ./FontPatcher/font-patcher --complete --quiet --careful "$font" -o patched-fonts/
+            echo "Processing: $fname (mono)"
+            ./FontPatcher/font-patcher --complete --quiet --careful --mono "$font" -o patched-fonts-mono/
           done < <(find fonts -type f -name '*.ttf' -print0)
-          ls -1 patched-fonts | head -n 20
+          echo "Normal variant sample:"; ls -1 patched-fonts | head -n 10 || true
+          echo "Mono variant sample:"; ls -1 patched-fonts-mono | head -n 10 || true
+          # 确保两个目录都有内容
+          [ -n "$(ls -A patched-fonts 2>/dev/null)" ] || { echo "ERROR: normal variant empty" >&2; exit 1; }
+          [ -n "$(ls -A patched-fonts-mono 2>/dev/null)" ] || { echo "ERROR: mono variant empty" >&2; exit 1; }
 
       - name: Package fonts
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
           set -euo pipefail
           mv patched-fonts lxgw-wenkai-nerd
+          mv patched-fonts-mono lxgw-wenkai-mono-nerd
           tar -czvf lxgw-wenkai-nerd.tar.gz -C lxgw-wenkai-nerd .
           zip -qr lxgw-wenkai-nerd.zip lxgw-wenkai-nerd
-          ls -lh lxgw-wenkai-nerd.*
+          tar -czvf lxgw-wenkai-mono-nerd.tar.gz -C lxgw-wenkai-mono-nerd .
+          zip -qr lxgw-wenkai-mono-nerd.zip lxgw-wenkai-mono-nerd
+          ls -lh lxgw-wenkai-nerd.* || true
+          ls -lh lxgw-wenkai-mono-nerd.* || true
+
+      - name: Build asset file list
+        if: steps.fetch_release.outputs.skip != 'true'
+        id: assets
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            lxgw-wenkai-nerd.tar.gz \
+            lxgw-wenkai-nerd.zip \
+            lxgw-wenkai-mono-nerd.tar.gz \
+            lxgw-wenkai-mono-nerd.zip > asset-files.txt
+          echo "Final asset list:"; cat asset-files.txt
+          echo 'files<<EOF' >> $GITHUB_OUTPUT
+          cat asset-files.txt >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: steps.fetch_release.outputs.skip != 'true'
@@ -118,8 +143,6 @@ jobs:
             This release includes the patched LXGW WenKai fonts.
             Upstream LXGW WenKai release: https://github.com/lxgw/LxgwWenKai/releases/tag/${{ steps.fetch_release.outputs.latest }}
           tag_name: ${{ steps.fetch_release.outputs.latest }}
-          files: |
-            lxgw-wenkai-nerd.tar.gz
-            lxgw-wenkai-nerd.zip
+          files: ${{ steps.assets.outputs.files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

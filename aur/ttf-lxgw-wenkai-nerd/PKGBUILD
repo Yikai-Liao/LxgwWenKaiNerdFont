@@ -1,0 +1,29 @@
+# Maintainer: Your Name <you@example.com>
+_pkgname=lxgw-wenkai-nerd
+pkgname=ttf-lxgw-wenkai-nerd
+pkgver=0.0.0
+pkgrel=1
+pkgdesc="LXGW WenKai patched with Nerd Font glyphs"
+arch=('any')
+url="https://github.com/Yikai-Liao/LxgwWenKaiNerdFont"
+license=('OFL')
+depends=('fontconfig')
+makedepends=('unzip')
+provides=('lxgw-wenkai-nerd-font')
+conflicts=('lxgw-wenkai-nerd-font')
+source=("https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases/download/${pkgver}/lxgw-wenkai-nerd.zip")
+noextract=()
+sha256sums=('SKIP')
+
+package() {
+  cd "${srcdir}"
+  mkdir -p "${pkgdir}/usr/share/fonts/TTF"
+  unzip -q "${srcdir}/lxgw-wenkai-nerd.zip" -d extracted
+  install -Dm644 extracted/*.ttf -t "${pkgdir}/usr/share/fonts/TTF/"
+  install -Dm644 "${srcdir}/../..//OFL.txt" "${pkgdir}/usr/share/licenses/${pkgname}/OFL.txt"
+}
+
+# To update:
+# 1. set pkgver to upstream release tag
+# 2. update sha256sums with: updpkgsums
+# 3. makepkg --printsrcinfo > .SRCINFO

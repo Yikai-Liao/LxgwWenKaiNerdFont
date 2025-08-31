@@ -1,0 +1,29 @@
+# Maintainer: Your Name <you@example.com>
+_pkgname=lxgw-wenkai-tc-mono-nerd
+pkgname=ttf-lxgw-wenkai-tc-mono-nerd
+pkgver=0.0.0
+pkgrel=1
+pkgdesc="LXGW WenKai TC Mono variant patched with Nerd Font glyphs"
+arch=('any')
+url="https://github.com/Yikai-Liao/LxgwWenKaiNerdFont"
+license=('OFL')
+depends=('fontconfig')
+makedepends=('unzip')
+provides=('lxgw-wenkai-tc-mono-nerd-font')
+conflicts=('lxgw-wenkai-tc-mono-nerd-font')
+# Adjust asset name if different
+source=("https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases/download/${pkgver}/lxgw-wenkai-tc-mono-nerd.zip")
+sha256sums=('SKIP')
+
+package() {
+  cd "${srcdir}"
+  mkdir -p "${pkgdir}/usr/share/fonts/TTF"
+  unzip -q "${srcdir}/lxgw-wenkai-tc-mono-nerd.zip" -d extracted
+  install -Dm644 extracted/*.ttf -t "${pkgdir}/usr/share/fonts/TTF/"
+  install -Dm644 "${srcdir}/../..//OFL.txt" "${pkgdir}/usr/share/licenses/${pkgname}/OFL.txt"
+}
+
+# To update:
+# 1. set pkgver to upstream release tag
+# 2. update sha256sums with: updpkgsums
+# 3. makepkg --printsrcinfo > .SRCINFO

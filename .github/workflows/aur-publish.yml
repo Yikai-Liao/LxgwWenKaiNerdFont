@@ -1,0 +1,134 @@
+name: Publish AUR Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: aur-publish-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.event.release.draft == false && github.event.release.prerelease == false
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pkg: ttf-lxgw-wenkai-nerd
+            asset: lxgw-wenkai-nerd.zip
+            desc: "LXGW WenKai patched with Nerd Font glyphs"
+          - pkg: ttf-lxgw-wenkai-mono-nerd
+            asset: lxgw-wenkai-mono-nerd.zip
+            desc: "LXGW WenKai Mono patched with Nerd Font glyphs"
+    steps:
+      - name: Prepare variables
+        id: vars
+        run: |
+          set -euo pipefail
+          TAG='${{ github.event.release.tag_name }}'
+            # strip leading v
+          PKGVER=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
+          echo "Matrix pkg=${{ matrix.pkg }} asset=${{ matrix.asset }} version=$PKGVER"
+
+      - name: Fetch asset & license
+        id: dl
+        run: |
+          set -euo pipefail
+          tag='${{ steps.vars.outputs.tag }}'
+          asset='${{ matrix.asset }}'
+          repo='${{ github.repository }}'
+          curl -fL "https://github.com/${repo}/releases/download/${tag}/${asset}" -o "${asset}"
+          curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
+          sha_asset=$(sha256sum "${asset}" | cut -d' ' -f1)
+          sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
+          echo "sha_asset=$sha_asset" >> $GITHUB_OUTPUT
+          echo "sha_license=$sha_license" >> $GITHUB_OUTPUT
+          echo "Asset SHA256: $sha_asset"; echo "License SHA256: $sha_license"
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          printf 'Host aur.archlinux.org\n  HostName aur.archlinux.org\n  User aur\n  IdentityFile ~/.ssh/aur\n  StrictHostKeyChecking accept-new\n' > ~/.ssh/config
+
+      - name: Clone AUR repo
+        run: |
+          set -euo pipefail
+          git clone "ssh://aur@aur.archlinux.org/${{ matrix.pkg }}.git" aurpkg || { echo "AUR repo ${{ matrix.pkg }} missing" >&2; exit 1; }
+          ls -la aurpkg
+
+      - name: Generate PKGBUILD
+        working-directory: aurpkg
+        run: |
+          set -euo pipefail
+          pkgname='${{ matrix.pkg }}'
+          pkgver='${{ steps.vars.outputs.pkgver }}'
+          asset='${{ matrix.asset }}'
+          sha_asset='${{ steps.dl.outputs.sha_asset }}'
+          sha_license='${{ steps.dl.outputs.sha_license }}'
+          tag='${{ steps.vars.outputs.tag }}'
+          desc='${{ matrix.desc }}'
+          # 计算 pkgrel：若已存在且同版本则 +1
+          pkgrel=1
+          if [ -f PKGBUILD ]; then
+            old_ver=$(grep -E '^pkgver=' PKGBUILD | head -n1 | cut -d= -f2)
+            old_rel=$(grep -E '^pkgrel=' PKGBUILD | head -n1 | cut -d= -f2)
+            if [ "$old_ver" = "$pkgver" ] && [[ $old_rel =~ ^[0-9]+$ ]]; then
+              pkgrel=$(( old_rel + 1 ))
+              echo "Same pkgver detected; bumping pkgrel to $pkgrel"
+            fi
+          fi
+          printf '%s\n' \
+            "# Maintainer: Yikai Liao <lyk-boya@outlook.com>" \
+            "pkgname=${pkgname}" \
+            "pkgver=${pkgver}" \
+            "pkgrel=${pkgrel}" \
+            "pkgdesc=\"${desc}\"" \
+            "arch=('any')" \
+            "url=\"https://github.com/Yikai-Liao/LxgwWenKaiNerdFont\"" \
+            "license=('OFL')" \
+            "depends=()" \
+            "makedepends=('unzip')" \
+            "_tag='${tag}'" \
+            "source=(\"https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases/download/${_tag}/${asset}\" \"OFL.txt::https://raw.githubusercontent.com/Yikai-Liao/LxgwWenKaiNerdFont/${_tag}/OFL.txt\")" \
+            "sha256sums=('${sha_asset}' '${sha_license}')" \
+            "" \
+            "package() {" \
+            "  cd \"${srcdir}\"" \
+            "  mkdir -p \"${pkgdir}/usr/share/fonts/TTF\"" \
+            "  unzip -q \"${srcdir}/${asset}\" -d extracted" \
+            "  install -Dm644 extracted/*.ttf -t \"${pkgdir}/usr/share/fonts/TTF/\"" \
+            "  install -Dm644 OFL.txt \"${pkgdir}/usr/share/licenses/${pkgname}/OFL.txt\"" \
+            "}" > PKGBUILD
+          echo 'PKGBUILD preview:'; sed -n '1,120p' PKGBUILD
+
+      - name: Generate .SRCINFO
+        working-directory: aurpkg
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/pkg -w /pkg archlinux:base bash -lc "pacman -Sy --noconfirm base-devel unzip git && useradd build && chown -R build . && su build -c 'makepkg --printsrcinfo > .SRCINFO'"
+          echo '.SRCINFO preview:'; sed -n '1,150p' .SRCINFO
+
+      - name: Commit & push if changed
+        working-directory: aurpkg
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then echo "No changes to publish."; exit 0; fi
+          git add PKGBUILD .SRCINFO
+          git commit -m "update: ${{ matrix.pkg }} to ${{ steps.vars.outputs.pkgver }} (release ${{ steps.vars.outputs.tag }})"
+          git push
+
+      - name: Summary
+        run: |
+          echo "Published ${{ matrix.pkg }} version ${{ steps.vars.outputs.pkgver }} asset sha256=${{ steps.dl.outputs.sha_asset }} license sha256=${{ steps.dl.outputs.sha_license }}"
