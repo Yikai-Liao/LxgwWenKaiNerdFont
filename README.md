@@ -7,30 +7,34 @@
 This repository provides two variants of LXGW WenKai fonts:
 
 ### LXGWWenKai Nerd Font (Proportional)
-- **LXGWWenKaiNerdFont-Light.ttf**
-- **LXGWWenKaiNerdFont-Regular.ttf** 
-- **LXGWWenKaiNerdFont-Medium.ttf**
+- LXGWWenKaiNerdFont-Light.ttf
+- LXGWWenKaiNerdFont-Regular.ttf 
+- LXGWWenKaiNerdFont-Medium.ttf
 
 ### LXGWWenKaiMono Nerd Font (Monospace)
-- **LXGWWenKaiMonoNerdFont-Light.ttf**
-- **LXGWWenKaiMonoNerdFont-Regular.ttf**
-- **LXGWWenKaiMonoNerdFont-Medium.ttf**
+- LXGWWenKaiMonoNerdFont-Light.ttf
+- LXGWWenKaiMonoNerdFont-Regular.ttf
+- LXGWWenKaiMonoNerdFont-Medium.ttf
 
 ## Installation
 
 ### Arch Linux (AUR)
 
-Install the fonts using your favorite AUR helper:
+Install the fonts using your favorite AUR helper. The fonts are split into two separate packages:
 
 ```bash
-# Install all font variants (both proportional and monospace)
+# Install proportional variant (LXGWWenKai Nerd Font)
 paru -S ttf-lxgw-wenkai-nerd
 
+# Install monospace variant (LXGWWenKaiMono Nerd Font)  
+paru -S ttf-lxgw-wenkai-mono-nerd
+
 # Or using yay
-yay -S ttf-lxgw-wenkai-nerd
+yay -S ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd
 ```
 
-This single package includes all 6 font files (both proportional and monospace variants in all weights).
+- **ttf-lxgw-wenkai-nerd**: Contains the proportional variants (Light, Regular, Medium)
+- **ttf-lxgw-wenkai-mono-nerd**: Contains the monospace variants (Light, Regular, Medium)
 
 ### Manual Installation
 

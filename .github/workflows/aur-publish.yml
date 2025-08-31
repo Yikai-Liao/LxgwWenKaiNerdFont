@@ -3,16 +3,22 @@ name: Publish AUR Packages
 on:
   release:
     types: [published]
+  repository_dispatch:
+    types: [aur-publish]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   publish-normal:
     name: publish ttf-lxgw-wenkai-nerd
     runs-on: ubuntu-latest
-    if: github.event.release.draft == false && github.event.release.prerelease == false
+    if: |
+      (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false) ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'aur-publish') ||
+      github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout scripts
         uses: actions/checkout@v4
@@ -24,6 +30,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: bash .github/scripts/resolve-tag.sh
 
       - name: Get asset info & license
@@ -69,7 +76,10 @@ jobs:
   publish-mono:
     name: publish ttf-lxgw-wenkai-mono-nerd
     runs-on: ubuntu-latest
-    if: github.event.release.draft == false && github.event.release.prerelease == false
+    if: |
+      (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false) ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'aur-publish') ||
+      github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout scripts
         uses: actions/checkout@v4
@@ -81,6 +91,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: bash .github/scripts/resolve-tag.sh
 
       - name: Get asset info & license
