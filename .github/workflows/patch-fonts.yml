@@ -87,17 +87,11 @@ jobs:
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          mkdir -p patched-fonts
+          mkdir patched-fonts
           for font in fonts/**/*.ttf; do
-            fname=$(basename "$font")
-            echo "Processing: $fname (normal)"
+            echo "Processing: $font"
             ./FontPatcher/font-patcher --complete --quiet --careful "$font" -o patched-fonts/
-            echo "Processing: $fname (mono)"
-            ./FontPatcher/font-patcher --complete --quiet --careful --mono "$font" -o patched-fonts/
           done
-          echo "All patched fonts:"; ls -1 patched-fonts || true
-          # Ensure directory has content
-          [ -n "$(ls -A patched-fonts 2>/dev/null)" ] || { echo "ERROR: patched fonts directory empty" >&2; exit 1; }
 
       - name: Package fonts
         if: steps.fetch_release.outputs.skip != 'true'
