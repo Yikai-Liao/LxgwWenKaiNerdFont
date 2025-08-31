@@ -1,6 +1,6 @@
 # AUR Publish Scripts
 
-这个目录包含了用于自动发布 AUR 包的脚本，将复杂的 shell 逻辑从 GitHub Actions workflow 中分离出来。
+这个目录包含了用于自动发布 AUR 包的脚本，配合 [KSXGitHub/github-actions-deploy-aur](https://github.com/KSXGitHub/github-actions-deploy-aur) Action 使用。
 
 ## 脚本说明
 
@@ -14,36 +14,37 @@
 - **参数**: `tag` `asset_name` `repository`
 - **输出**: 文件的 SHA256 校验和到 GitHub Actions 输出
 
-### setup-ssh.sh
-- **功能**: 配置 SSH 访问 AUR
-- **环境变量**: `AUR_SSH_PRIVATE_KEY` (from secrets)
-
 ### generate-pkgbuild.sh
 - **功能**: 为指定包生成 PKGBUILD 文件
 - **参数**: `pkgname` `pkgver` `asset` `sha_asset` `sha_license` `tag` `is_mono`
-- **特性**: 自动递增 pkgrel，支持普通和 mono 变体
+- **特性**: 支持普通和 mono 变体，自动创建包目录
 
-### generate-srcinfo.sh
-- **功能**: 使用 Docker 为两个包生成 .SRCINFO 文件
-- **依赖**: Docker (Arch Linux base image)
+## 工作流程
 
-### commit-and-push.sh
-- **功能**: 提交更改并推送到 AUR 仓库
-- **参数**: `pkgver` `tag`
-- **特性**: 只在有变更时提交，包含有意义的提交信息
+workflow 使用成熟的第三方 Action `KSXGitHub/github-actions-deploy-aur@v4.1.1` 来处理：
+- SSH 配置
+- AUR 仓库克隆
+- `.SRCINFO` 文件生成
+- Git 提交和推送
+- 校验和更新 (`updpkgsums`)
 
 ## 使用方式
 
-这些脚本通过 GitHub Actions workflow (aur-publish.yml) 自动调用，无需手动执行。每当有新的 release 发布时，workflow 会：
+这些脚本通过 GitHub Actions workflow (aur-publish.yml) 自动调用。每当有新的 release 发布时，workflow 会：
 
-1. 检测最新版本
-2. 下载资产和许可证
-3. 克隆 AUR 仓库
-4. 为普通和 mono 变体生成 PKGBUILD
-5. 生成 .SRCINFO 文件
-6. 提交并推送到 AUR
+1. 检测最新版本 (resolve-tag.sh)
+2. 下载资产和许可证 (download-assets.sh)
+3. 为普通和 mono 变体生成 PKGBUILD (generate-pkgbuild.sh)
+4. 使用第三方 Action 发布到 AUR
 
 ## 权限要求
 
 - `AUR_SSH_PRIVATE_KEY`: AUR 访问的 SSH 私钥 (GitHub Secret)
 - `GITHUB_TOKEN`: GitHub API 访问令牌 (自动提供)
+
+## 优势
+
+- **可靠性**: 使用经过验证的第三方 Action，避免自己处理复杂的权限和 Docker 问题
+- **简洁性**: 大幅减少自定义脚本代码
+- **并行处理**: 普通和 mono 包可以并行发布
+- **自动校验**: Action 自动处理 `updpkgsums` 和 `.SRCINFO` 生成

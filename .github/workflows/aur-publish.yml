@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  publish:
-    name: publish fonts
+  publish-normal:
+    name: publish ttf-lxgw-wenkai-nerd
     runs-on: ubuntu-latest
     if: github.event.release.draft == false && github.event.release.prerelease == false
     steps:
@@ -30,34 +30,55 @@ jobs:
         id: dl
         run: bash .github/scripts/download-assets.sh '${{ steps.vars.outputs.tag }}' 'lxgw-wenkai-nerd.zip' '${{ github.repository }}'
 
-      - name: Setup SSH
-        env:
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-        run: bash .github/scripts/setup-ssh.sh
-
-      - name: Clone AUR repos
-        run: |
-          # 设置文件权限
-          umask 022
-          for p in ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd; do
-            echo "Cloning $p..."
-            git clone "ssh://aur@aur.archlinux.org/${p}.git" "$p" || { echo "AUR repo $p missing" >&2; exit 1; }
-            # 确保目录权限正确
-            chmod -R u+w "$p"
-          done
-
       - name: Generate PKGBUILD (normal)
         run: bash .github/scripts/generate-pkgbuild.sh 'ttf-lxgw-wenkai-nerd' '${{ steps.vars.outputs.pkgver }}' '${{ steps.dl.outputs.asset }}' '${{ steps.dl.outputs.sha_asset }}' '${{ steps.dl.outputs.sha_license }}' '${{ steps.vars.outputs.tag }}' 'false'
+
+      - name: Publish AUR package (normal)
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        with:
+          pkgname: ttf-lxgw-wenkai-nerd
+          pkgbuild: ttf-lxgw-wenkai-nerd/PKGBUILD
+          assets: OFL.txt
+          updpkgsums: true
+          commit_username: github-actions[bot]
+          commit_email: 41898282+github-actions[bot]@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "update: ttf-lxgw-wenkai-nerd to ${{ steps.vars.outputs.pkgver }} (release ${{ steps.vars.outputs.tag }})"
+          ssh_keyscan_types: rsa,ecdsa,ed25519
+
+  publish-mono:
+    name: publish ttf-lxgw-wenkai-mono-nerd
+    runs-on: ubuntu-latest
+    if: github.event.release.draft == false && github.event.release.prerelease == false
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+
+      - name: Resolve tag & version
+        id: vars
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+        run: bash .github/scripts/resolve-tag.sh
+
+      - name: Download asset & license
+        id: dl
+        run: bash .github/scripts/download-assets.sh '${{ steps.vars.outputs.tag }}' 'lxgw-wenkai-nerd.zip' '${{ github.repository }}'
 
       - name: Generate PKGBUILD (mono)
         run: bash .github/scripts/generate-pkgbuild.sh 'ttf-lxgw-wenkai-mono-nerd' '${{ steps.vars.outputs.pkgver }}' '${{ steps.dl.outputs.asset }}' '${{ steps.dl.outputs.sha_asset }}' '${{ steps.dl.outputs.sha_license }}' '${{ steps.vars.outputs.tag }}' 'true'
 
-      - name: Generate .SRCINFO (both)
-        run: bash .github/scripts/generate-srcinfo.sh
-
-      - name: Commit & push
-        run: bash .github/scripts/commit-and-push.sh '${{ steps.vars.outputs.pkgver }}' '${{ steps.vars.outputs.tag }}'
-
-      - name: Summary
-        run: |
-          echo "Published both packages version ${{ steps.vars.outputs.pkgver }} (tag ${{ steps.vars.outputs.tag }})"
+      - name: Publish AUR package (mono)
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        with:
+          pkgname: ttf-lxgw-wenkai-mono-nerd
+          pkgbuild: ttf-lxgw-wenkai-mono-nerd/PKGBUILD
+          assets: OFL.txt
+          updpkgsums: true
+          commit_username: github-actions[bot]
+          commit_email: 41898282+github-actions[bot]@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "update: ttf-lxgw-wenkai-mono-nerd to ${{ steps.vars.outputs.pkgver }} (release ${{ steps.vars.outputs.tag }})"
+          ssh_keyscan_types: rsa,ecdsa,ed25519

@@ -9,17 +9,9 @@ sha_license="$5"
 tag="$6"
 is_mono="$7"
 
+# 创建包目录
+mkdir -p "$pkgname"
 cd "$pkgname"
-
-# 计算pkgrel
-pkgrel=1
-if [ -f PKGBUILD ]; then
-    old_ver=$(grep -E '^pkgver=' PKGBUILD | cut -d= -f2 | head -n1)
-    old_rel=$(grep -E '^pkgrel=' PKGBUILD | cut -d= -f2 | head -n1)
-    if [ "$old_ver" = "$pkgver" ] && [[ $old_rel =~ ^[0-9]+$ ]]; then 
-        pkgrel=$((old_rel+1))
-    fi
-fi
 
 # 确定描述和安装模式
 if [ "$is_mono" = "true" ]; then
@@ -35,7 +27,7 @@ cat > PKGBUILD <<EOF
 # Maintainer: lyk <lyk-boya@outlook.com>
 pkgname=$pkgname
 pkgver=$pkgver
-pkgrel=$pkgrel
+pkgrel=1
 pkgdesc="$pkgdesc"
 arch=('any')
 url="https://github.com/Yikai-Liao/LxgwWenKaiNerdFont"
@@ -69,6 +61,6 @@ cat >> PKGBUILD <<EOF
 EOF
 
 echo "Generated PKGBUILD for $pkgname (mono=$is_mono):"
-sed -n '1,20p' PKGBUILD
+head -10 PKGBUILD
 
 cd - >/dev/null
