@@ -31,9 +31,31 @@ jobs:
         id: vars
         run: |
           set -euo pipefail
-          TAG='${{ github.event.release.tag_name }}'
-            # strip leading v
+          # Ensure jq present
+          command -v jq >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y jq; }
+          TAG=""
+          if [ '${{ github.event_name }}' = 'release' ]; then
+            TAG='${{ github.event.release.tag_name }}'
+            echo "Got tag from release event: $TAG"
+          fi
+          if [ -z "$TAG" ]; then
+            echo "Query latest release via API..." >&2
+            TAG=$(curl -fsSL -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+              -H 'Accept: application/vnd.github+json' \
+              https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name || true)
+            [ "$TAG" = "null" ] && TAG=""
+          fi
+          if [ -z "$TAG" ]; then
+            echo "No releases; fallback to tags list..." >&2
+            TAG=$(curl -fsSL -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+              -H 'Accept: application/vnd.github+json' \
+              'https://api.github.com/repos/${{ github.repository }}/tags?per_page=100' \
+              | jq -r '.[].name' | grep -E '^[vV]?[0-9]' | sed 's/^v//' | sort -V | tail -n1)
+            if [ -n "$TAG" ]; then TAG="v$TAG"; fi
+          fi
+          if [ -z "$TAG" ]; then echo "ERROR: Unable to determine tag automatically" >&2; exit 1; fi
           PKGVER=${TAG#v}
+          echo "Resolved tag=$TAG pkgver=$PKGVER"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
           echo "Matrix pkg=${{ matrix.pkg }} asset=${{ matrix.asset }} version=$PKGVER"
