@@ -2,66 +2,116 @@ name: Patch WenKai Fonts
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Daily scheduled check, adjust as needed
-  workflow_dispatch: # Manually trigger the workflow
+    - cron: '0 0 * * *' # 00:00 UTC 每日
+  workflow_dispatch:
+
+# 避免并发重复跑（手动+定时同触发）
+concurrency:
+  group: patch-wenkai-fonts
+  cancel-in-progress: false
+
+# 最低限度权限（发布 release 需要 contents: write）
+permissions:
+  contents: write
 
 jobs:
   check-and-patch:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository code
-        uses: actions/checkout@v3
-
-      - name: Get latest version
-        id: fetch-release
-        run: |
-          LATEST_RELEASE=$(curl -s https://api.github.com/repos/lxgw/LxgwWenKai/releases/latest | jq -r .tag_name)
-          echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_ENV
-
-          if git tag | grep -q "$LATEST_RELEASE"; then
-            echo "Version $LATEST_RELEASE has already been processed."
-            exit 0
-          fi
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要全部 tag 做重复检测
 
       - name: Install dependencies
         run: |
+          set -eu
           sudo apt-get update
-          sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree
+          sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree jq unzip
+
+      - name: Get upstream latest version
+        id: fetch_release
+        env:
+          GH_REPO: lxgw/LxgwWenKai
+        run: |
+          set -euo pipefail
+          echo "UTC now: $(date -u '+%Y-%m-%d %H:%M:%S')"
+          api_json=$(curl -fsSL https://api.github.com/repos/${GH_REPO}/releases/latest)
+          LATEST_RELEASE=$(echo "$api_json" | jq -r .tag_name)
+          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" = "null" ]; then
+            echo "Cannot parse latest release tag" >&2
+            exit 1
+          fi
+          echo "Upstream latest tag: $LATEST_RELEASE"
+          echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_ENV
+          echo "latest=$LATEST_RELEASE" >> $GITHUB_OUTPUT
+
+          # 检查当前仓库是否已经有同名 release（避免重复）
+          existing_release=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -fsSL \
+            https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_RELEASE || true)
+          if echo "$existing_release" | grep -q '"tag_name"'; then
+            echo "Release $LATEST_RELEASE already exists in current repo, skip.";
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 备选：若 release 不存在但 tag 已在本地（或远端）
+          if git tag --list | grep -qx "$LATEST_RELEASE"; then
+            echo "Tag $LATEST_RELEASE already exists (without release), skip.";
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+      - name: Stop early (already processed)
+        if: steps.fetch_release.outputs.skip == 'true'
+        run: echo "Nothing new, exiting early."
 
       - name: Download fonts and show structure
+        if: steps.fetch_release.outputs.skip != 'true'
         run: |
-          mkdir fonts
+          set -euo pipefail
+          mkdir -p fonts
           wget -q -O fonts/lxgw-wenkai.tar.gz https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/lxgw-wenkai-$LATEST_RELEASE.tar.gz
           tar -xzvf fonts/lxgw-wenkai.tar.gz -C fonts
-          tree fonts -L 2
+          tree fonts -L 2 || true
 
       - name: Set up Font Patcher
+        if: steps.fetch_release.outputs.skip != 'true'
         run: |
+          set -euo pipefail
           wget -q -O FontPatcher.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FontPatcher.zip
-          unzip FontPatcher.zip -d FontPatcher
+          unzip -q FontPatcher.zip -d FontPatcher
           chmod +x FontPatcher/font-patcher
 
       - name: Patch fonts
+        if: steps.fetch_release.outputs.skip != 'true'
         run: |
-          mkdir patched-fonts
-          for font in fonts/**/*.ttf; do
+          set -euo pipefail
+          mkdir -p patched-fonts
+          # 使用 find 更可靠 (避免 ** 需要 globstar)
+          while IFS= read -r -d '' font; do
             echo "Processing: $font"
             ./FontPatcher/font-patcher --complete --quiet --careful "$font" -o patched-fonts/
-          done
+          done < <(find fonts -type f -name '*.ttf' -print0)
+          ls -1 patched-fonts | head -n 20
 
       - name: Package fonts
+        if: steps.fetch_release.outputs.skip != 'true'
         run: |
+          set -euo pipefail
           mv patched-fonts lxgw-wenkai-nerd
           tar -czvf lxgw-wenkai-nerd.tar.gz -C lxgw-wenkai-nerd .
-          zip -r lxgw-wenkai-nerd.zip lxgw-wenkai-nerd
+          zip -qr lxgw-wenkai-nerd.zip lxgw-wenkai-nerd
+          ls -lh lxgw-wenkai-nerd.*
 
       - name: Create GitHub Release
+        if: steps.fetch_release.outputs.skip != 'true'
         uses: softprops/action-gh-release@v1
         with:
           body: |
             This release includes the patched LXGW WenKai fonts.
-            Original LXGW WenKai release: https://github.com/lxgw/LxgwWenKai/releases/tag/${{ env.LATEST_RELEASE }}
-          tag_name: ${{ env.LATEST_RELEASE }}
+            Upstream LXGW WenKai release: https://github.com/lxgw/LxgwWenKai/releases/tag/${{ steps.fetch_release.outputs.latest }}
+          tag_name: ${{ steps.fetch_release.outputs.latest }}
           files: |
             lxgw-wenkai-nerd.tar.gz
             lxgw-wenkai-nerd.zip
