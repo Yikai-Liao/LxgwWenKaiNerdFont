@@ -1,0 +1,93 @@
+name: Update Homebrew Formulas
+
+on:
+  release:
+    types: [published]
+  repository_dispatch:
+    types: [homebrew-update]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-formulas:
+    name: Update Homebrew cask formulas
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false) ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'homebrew-update') ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve tag & version
+        id: vars
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: bash .github/scripts/resolve-tag.sh
+
+      - name: Get asset SHA256
+        id: sha
+        run: |
+          set -euo pipefail
+          tag='${{ steps.vars.outputs.tag }}'
+          asset='lxgw-wenkai-nerd.zip'
+          repo='${{ github.repository }}'
+          url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+
+          echo "Getting SHA256 for $url"
+          sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
+
+          echo "Asset SHA256: $sha_asset"
+          echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
+
+      - name: Update Homebrew formulas
+        run: |
+          set -euo pipefail
+
+          version='${{ steps.vars.outputs.pkgver }}'
+          sha='${{ steps.sha.outputs.sha_asset }}'
+
+          # Update proportional font formula
+          sed -i "s/version \".*\"/version \"$version\"/" Casks/font-lxgw-wenkai-nerd.rb
+          sed -i "s/sha256 \".*\"/sha256 \"$sha\"/" Casks/font-lxgw-wenkai-nerd.rb
+
+          # Update monospace font formula
+          sed -i "s/version \".*\"/version \"$version\"/" Casks/font-lxgw-wenkai-mono-nerd.rb
+          sed -i "s/sha256 \".*\"/sha256 \"$sha\"/" Casks/font-lxgw-wenkai-mono-nerd.rb
+
+          echo "Updated formulas to version $version with SHA256 $sha"
+
+      - name: Validate formula syntax
+        run: |
+          ruby -c Casks/font-lxgw-wenkai-nerd.rb
+          ruby -c Casks/font-lxgw-wenkai-mono-nerd.rb
+          echo "Formula syntax validation passed"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update Homebrew formulas to ${{ steps.vars.outputs.tag }}"
+          title: "Update Homebrew formulas to ${{ steps.vars.outputs.tag }}"
+          body: |
+            This PR automatically updates the Homebrew cask formulas to version `${{ steps.vars.outputs.tag }}`.
+
+            **Changes:**
+            - Updated version to `${{ steps.vars.outputs.pkgver }}`
+            - Updated SHA256 to `${{ steps.sha.outputs.sha_asset }}`
+
+            **Files updated:**
+            - `Casks/font-lxgw-wenkai-nerd.rb`
+            - `Casks/font-lxgw-wenkai-mono-nerd.rb`
+
+            This ensures the Homebrew formulas stay in sync with the latest releases.
+          branch: homebrew-update-${{ steps.vars.outputs.tag }}
+          delete-branch: true
