@@ -1,0 +1,17 @@
+# Build artifacts and temporary files
+FontPatcher/
+FontPatcher.zip
+fonts/
+patched-fonts/
+*-fonts/
+test-*/
+*.ttf
+*.otf
+
+# Package generation artifacts
+**/PKGBUILD
+!.github/scripts/
+
+# Common temporary directories
+tmp/
+temp/
