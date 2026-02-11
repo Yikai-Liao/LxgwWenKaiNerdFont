@@ -18,6 +18,29 @@ This repository provides two variants of LXGW WenKai fonts:
 
 ## Installation
 
+### macOS (Homebrew)
+
+Install the fonts using Homebrew by adding this repository as a custom tap:
+
+```bash
+# Add this repository as a custom Homebrew tap
+brew tap Yikai-Liao/LxgwWenKaiNerdFont
+
+# Install proportional variant (LXGWWenKai Nerd Font)
+brew install --cask font-lxgw-wenkai-nerd
+
+# Install monospace variant (LXGWWenKaiMono Nerd Font)
+brew install --cask font-lxgw-wenkai-mono-nerd
+
+# Or install both variants at once
+brew install --cask font-lxgw-wenkai-nerd font-lxgw-wenkai-mono-nerd
+```
+
+- **font-lxgw-wenkai-nerd**: Contains the proportional variants (Light, Regular, Medium)
+- **font-lxgw-wenkai-mono-nerd**: Contains the monospace variants (Light, Regular, Medium)
+
+**Note**: These formulas can also be submitted to the official [homebrew-cask-fonts](https://github.com/Homebrew/homebrew-cask-fonts) repository for wider distribution. See the [Casks/README.md](Casks/README.md) for submission instructions.
+
 ### Arch Linux (AUR)
 
 Install the fonts using your favorite AUR helper. The fonts are split into two separate packages:

@@ -136,3 +136,18 @@ jobs:
                 "release_url": "https://github.com/${{ github.repository }}/releases/tag/${{ env.LATEST_RELEASE }}"
               }
             }'
+
+      - name: Trigger Homebrew formula update
+        if: steps.fetch_release.outputs.skip != 'true'
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.everest-preview+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{
+              "event_type": "homebrew-update",
+              "client_payload": {
+                "tag_name": "${{ env.LATEST_RELEASE }}",
+                "release_url": "https://github.com/${{ github.repository }}/releases/tag/${{ env.LATEST_RELEASE }}"
+              }
+            }'
