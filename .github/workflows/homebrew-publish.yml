@@ -22,7 +22,7 @@ jobs:
       TAP_REPOSITORY: Yikai-Liao/homebrew-fonts
     steps:
       - name: Checkout scripts
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve tag & version
         id: vars
