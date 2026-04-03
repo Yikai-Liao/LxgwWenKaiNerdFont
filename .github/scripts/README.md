@@ -11,8 +11,13 @@ This directory contains scripts for automatically publishing AUR packages, used 
 
 ### generate-pkgbuild.sh
 - **Function**: Generate PKGBUILD file for specified package
-- **Parameters**: `pkgname` `pkgver` `asset` `sha_asset` `sha_license` `tag` `is_mono`
-- **Features**: Supports both normal and mono variants, automatically creates package directory
+- **Parameters**: `pkgname` `pkgver` `pkgdesc` `asset` `sha_asset` `sha_license` `tag`
+- **Features**: Uses versioned local source archive names to avoid AUR helper cache collisions
+
+### package-release-assets.sh
+- **Function**: Split patched fonts into full/proportional/mono release bundles
+- **Parameters**: `version` `source_dir`
+- **Features**: Produces versioned asset names for release publishing and downstream package managers
 
 ## Workflow
 
@@ -42,6 +47,8 @@ These scripts are automatically called through GitHub Actions workflow (aur-publ
 
 - **Reliability**: Uses proven third-party Action, avoiding complex permission and Docker issues
 - **Simplicity**: Significantly reduces custom script code
-- **Parallel Processing**: Normal and mono packages can be published in parallel
+- **No cache collisions**: Versioned source archive names avoid stale AUR helper caches
+- **No redundant downloads**: Normal and mono packages consume different release assets
+- **Parallel Processing**: Normal and mono packages are published in parallel via matrix strategy
 - **Automatic Validation**: Action automatically handles `updpkgsums` and `.SRCINFO` generation
 - **AUR Compliant**: Doesn't commit source files to AUR repository, avoiding size limit issues

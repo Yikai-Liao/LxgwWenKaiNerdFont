@@ -12,13 +12,24 @@ permissions:
   actions: read
 
 jobs:
-  publish-normal:
-    name: publish ttf-lxgw-wenkai-nerd
+  publish:
+    name: publish ${{ matrix.package.pkgname }}
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false) ||
       (github.event_name == 'repository_dispatch' && github.event.action == 'aur-publish') ||
       github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - pkgname: ttf-lxgw-wenkai-nerd
+            pkgdesc: LXGW WenKai patched with Nerd Font glyphs
+            asset_prefix: lxgw-wenkai-nerd-proportional
+          - pkgname: ttf-lxgw-wenkai-mono-nerd
+            pkgdesc: LXGW WenKai Mono patched with Nerd Font glyphs
+            asset_prefix: lxgw-wenkai-nerd-mono
+
     steps:
       - name: Checkout scripts
         uses: actions/checkout@v4
@@ -35,101 +46,48 @@ jobs:
 
       - name: Get asset info & license
         id: dl
-        run: |
-          set -euo pipefail
-          tag='${{ steps.vars.outputs.tag }}'
-          asset='lxgw-wenkai-nerd.zip'
-          repo='${{ github.repository }}'
-          url="https://github.com/${repo}/releases/download/${tag}/${asset}"
-          
-          # Only get SHA256 without downloading large files
-          echo "Getting SHA256 for $url"
-          sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
-          
-          # Download license file
-          curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
-          sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
-          
-          echo "Asset SHA256: $sha_asset"
-          echo "License SHA256: $sha_license"
-          
-          # Output to GitHub Actions
-          echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
-          echo "sha_license=$sha_license" >> "$GITHUB_OUTPUT"
-          echo "asset=$asset" >> "$GITHUB_OUTPUT"
-
-      - name: Generate PKGBUILD (normal)
-        run: bash .github/scripts/generate-pkgbuild.sh 'ttf-lxgw-wenkai-nerd' '${{ steps.vars.outputs.pkgver }}' '${{ steps.dl.outputs.asset }}' '${{ steps.dl.outputs.sha_asset }}' '${{ steps.dl.outputs.sha_license }}' '${{ steps.vars.outputs.tag }}' 'false'
-
-      - name: Publish AUR package (normal)
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
-        with:
-          pkgname: ttf-lxgw-wenkai-nerd
-          pkgbuild: ttf-lxgw-wenkai-nerd/PKGBUILD
-          updpkgsums: true
-          commit_username: github-actions[bot]
-          commit_email: 41898282+github-actions[bot]@users.noreply.github.com
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "update: ttf-lxgw-wenkai-nerd to ${{ steps.vars.outputs.pkgver }} (release ${{ steps.vars.outputs.tag }})"
-          ssh_keyscan_types: rsa,ecdsa,ed25519
-
-  publish-mono:
-    name: publish ttf-lxgw-wenkai-mono-nerd
-    runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false) ||
-      (github.event_name == 'repository_dispatch' && github.event.action == 'aur-publish') ||
-      github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout scripts
-        uses: actions/checkout@v4
-
-      - name: Resolve tag & version
-        id: vars
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
-          CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
-        run: bash .github/scripts/resolve-tag.sh
-
-      - name: Get asset info & license
-        id: dl
+          ASSET_PREFIX: ${{ matrix.package.asset_prefix }}
         run: |
           set -euo pipefail
           tag='${{ steps.vars.outputs.tag }}'
-          asset='lxgw-wenkai-nerd.zip'
+          pkgver='${{ steps.vars.outputs.pkgver }}'
           repo='${{ github.repository }}'
+          asset="${ASSET_PREFIX}-${pkgver}.zip"
           url="https://github.com/${repo}/releases/download/${tag}/${asset}"
-          
-          # Only get SHA256 without downloading large files
+
           echo "Getting SHA256 for $url"
-          sha_asset=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
-          
-          # Download license file
+          sha_asset=$(curl -fLs "$url" | sha256sum | cut -d' ' -f1)
+
           curl -fL "https://raw.githubusercontent.com/${repo}/${tag}/OFL.txt" -o OFL.txt
           sha_license=$(sha256sum OFL.txt | cut -d' ' -f1)
-          
+
           echo "Asset SHA256: $sha_asset"
           echo "License SHA256: $sha_license"
-          
-          # Output to GitHub Actions
+
           echo "sha_asset=$sha_asset" >> "$GITHUB_OUTPUT"
           echo "sha_license=$sha_license" >> "$GITHUB_OUTPUT"
           echo "asset=$asset" >> "$GITHUB_OUTPUT"
 
-      - name: Generate PKGBUILD (mono)
-        run: bash .github/scripts/generate-pkgbuild.sh 'ttf-lxgw-wenkai-mono-nerd' '${{ steps.vars.outputs.pkgver }}' '${{ steps.dl.outputs.asset }}' '${{ steps.dl.outputs.sha_asset }}' '${{ steps.dl.outputs.sha_license }}' '${{ steps.vars.outputs.tag }}' 'true'
+      - name: Generate PKGBUILD
+        run: |
+          bash .github/scripts/generate-pkgbuild.sh \
+            '${{ matrix.package.pkgname }}' \
+            '${{ steps.vars.outputs.pkgver }}' \
+            '${{ matrix.package.pkgdesc }}' \
+            '${{ steps.dl.outputs.asset }}' \
+            '${{ steps.dl.outputs.sha_asset }}' \
+            '${{ steps.dl.outputs.sha_license }}' \
+            '${{ steps.vars.outputs.tag }}'
 
-      - name: Publish AUR package (mono)
+      - name: Publish AUR package
         uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
-          pkgname: ttf-lxgw-wenkai-mono-nerd
-          pkgbuild: ttf-lxgw-wenkai-mono-nerd/PKGBUILD
+          pkgname: ${{ matrix.package.pkgname }}
+          pkgbuild: ${{ matrix.package.pkgname }}/PKGBUILD
           updpkgsums: true
           commit_username: github-actions[bot]
           commit_email: 41898282+github-actions[bot]@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "update: ttf-lxgw-wenkai-mono-nerd to ${{ steps.vars.outputs.pkgver }} (release ${{ steps.vars.outputs.tag }})"
+          commit_message: "update: ${{ matrix.package.pkgname }} to ${{ steps.vars.outputs.pkgver }} (release ${{ steps.vars.outputs.tag }})"
           ssh_keyscan_types: rsa,ecdsa,ed25519

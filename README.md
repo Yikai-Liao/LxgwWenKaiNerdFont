@@ -36,11 +36,17 @@ yay -S ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd
 - **ttf-lxgw-wenkai-nerd**: Contains the proportional variants (Light, Regular, Medium)
 - **ttf-lxgw-wenkai-mono-nerd**: Contains the monospace variants (Light, Regular, Medium)
 
+Each AUR package downloads only its own release asset, so installing both variants no longer fetches the same archive twice.
+
 ### Manual Installation
 
 1. Download the latest release from [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases)
-2. Extract the zip file
-3. Install the font files:
+2. Choose one of the release assets:
+   - `lxgw-wenkai-nerd-<version>.zip` or `.tar.gz`: all font files
+   - `lxgw-wenkai-nerd-proportional-<version>.zip`: proportional only
+   - `lxgw-wenkai-nerd-mono-<version>.zip`: monospace only
+3. Extract the archive
+4. Install the font files:
    - **Linux**: Copy TTF files to `~/.local/share/fonts/` or `/usr/share/fonts/`
    - **Windows**: Right-click font files and select "Install"
    - **macOS**: Double-click font files and click "Install Font"

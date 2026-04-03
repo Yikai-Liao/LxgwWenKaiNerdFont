@@ -27,13 +27,20 @@ jobs:
         run: |
           set -eu
           sudo apt-get update
-          sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree jq unzip
+          sudo apt-get install -y fontforge python3 python3-pip python3-fontforge tree jq unzip zip
 
       - name: Get latest version
         id: fetch_release
         run: |
+          set -euo pipefail
           LATEST_RELEASE=$(curl -s https://api.github.com/repos/lxgw/LxgwWenKai/releases/latest | jq -r .tag_name)
           echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_ENV
+
+          RELEASE_VERSION="${LATEST_RELEASE#v}"
+          while [[ "$RELEASE_VERSION" == v* ]]; do
+            RELEASE_VERSION="${RELEASE_VERSION#v}"
+          done
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
 
           if git tag | grep -q "$LATEST_RELEASE"; then
             echo "Version $LATEST_RELEASE has already been processed."
@@ -75,19 +82,16 @@ jobs:
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          mv patched-fonts lxgw-wenkai-nerd
-          tar -czvf lxgw-wenkai-nerd.tar.gz -C lxgw-wenkai-nerd .
-          zip -qr lxgw-wenkai-nerd.zip lxgw-wenkai-nerd
-          ls -lh lxgw-wenkai-nerd.* || true
+          bash .github/scripts/package-release-assets.sh "$RELEASE_VERSION" patched-fonts > asset-files.txt
+          echo "Release assets:"
+          cat asset-files.txt
+          xargs -r ls -lh < asset-files.txt || true
 
       - name: Build asset file list
         if: steps.fetch_release.outputs.skip != 'true'
         id: assets
         run: |
           set -euo pipefail
-          printf '%s\n' \
-            lxgw-wenkai-nerd.tar.gz \
-            lxgw-wenkai-nerd.zip > asset-files.txt
           echo "Final asset list:"; cat asset-files.txt
           echo 'files<<EOF' >> $GITHUB_OUTPUT
           cat asset-files.txt >> $GITHUB_OUTPUT
@@ -105,6 +109,12 @@ jobs:
 
             This release includes all 6 font variants (Light, Regular, Medium × Proportional, Monospace) patched with Nerd Fonts.
 
+            Assets:
+            - `lxgw-wenkai-nerd-${{ env.RELEASE_VERSION }}.zip`: full bundle
+            - `lxgw-wenkai-nerd-${{ env.RELEASE_VERSION }}.tar.gz`: full bundle (tar.gz)
+            - `lxgw-wenkai-nerd-proportional-${{ env.RELEASE_VERSION }}.zip`: proportional only
+            - `lxgw-wenkai-nerd-mono-${{ env.RELEASE_VERSION }}.zip`: monospace only
+
             Font files:
             - LXGWWenKaiNerdFont-Light.ttf
             - LXGWWenKaiNerdFont-Regular.ttf  
@@ -114,9 +124,7 @@ jobs:
             - LXGWWenKaiMonoNerdFont-Medium.ttf
 
             Based on LxgwWenKai ${{ env.LATEST_RELEASE }}
-          files: |
-            lxgw-wenkai-nerd.zip
-            lxgw-wenkai-nerd.tar.gz
+          files: ${{ steps.assets.outputs.files }}
           draft: false
           prerelease: false
         env:
