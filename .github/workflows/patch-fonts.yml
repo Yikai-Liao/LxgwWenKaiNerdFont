@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '17 3 * * 1' # 03:17 UTC every Monday (avoiding peak hours & NA/EU concentration)
   workflow_dispatch:
+    inputs:
+      force:
+        description: Force rebuild and overwrite the existing release for the latest upstream version
+        required: false
+        default: false
+        type: boolean
 
 # Avoid concurrent duplicate runs (manual + scheduled triggers)
 concurrency:
@@ -17,6 +23,8 @@ permissions:
 jobs:
   check-and-patch:
     runs-on: ubuntu-latest
+    env:
+      FORCE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,19 +50,37 @@ jobs:
           done
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
 
-          if git tag | grep -q "$LATEST_RELEASE"; then
-            echo "Version $LATEST_RELEASE has already been processed."
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
+          echo "release_exists=false" >> $GITHUB_OUTPUT
+
+          if git tag | grep -Fxq "$LATEST_RELEASE"; then
+            echo "release_exists=true" >> $GITHUB_OUTPUT
+
+            if [ "${FORCE_RELEASE}" = "true" ]; then
+              echo "Version $LATEST_RELEASE already exists, but force=true so the workflow will rebuild and overwrite it."
+            else
+              echo "Version $LATEST_RELEASE has already been processed."
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           fi
 
       - name: Stop early (already processed)
         if: steps.fetch_release.outputs.skip == 'true'
         run: echo "Nothing new, exiting early."
 
+      - name: Delete existing release and tag
+        if: steps.fetch_release.outputs.skip != 'true' && env.FORCE_RELEASE == 'true' && steps.fetch_release.outputs.release_exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release delete "$LATEST_RELEASE" --repo "${{ github.repository }}" --yes || true
+          git push origin ":refs/tags/$LATEST_RELEASE" || true
+
       - name: Download fonts and show structure
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
+          set -euo pipefail
           mkdir -p fonts
           wget -q -O fonts/lxgw-wenkai.tar.gz https://github.com/lxgw/LxgwWenKai/releases/download/$LATEST_RELEASE/lxgw-wenkai-$LATEST_RELEASE.tar.gz
           tar -xzvf fonts/lxgw-wenkai.tar.gz -C fonts
@@ -104,6 +130,7 @@ jobs:
         with:
           tag_name: ${{ env.LATEST_RELEASE }}
           name: ${{ env.LATEST_RELEASE }}
+          overwrite_files: true
           body: |
             Release ${{ env.LATEST_RELEASE }} - LxgwWenKai Nerd Font
 
@@ -130,17 +157,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Trigger AUR publishing
+      - name: Trigger downstream publishing
         if: steps.fetch_release.outputs.skip != 'true'
         run: |
-          curl -X POST \
-            -H "Accept: application/vnd.github.everest-preview+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/dispatches \
-            -d '{
-              "event_type": "aur-publish",
-              "client_payload": {
-                "tag_name": "${{ env.LATEST_RELEASE }}",
-                "release_url": "https://github.com/${{ github.repository }}/releases/tag/${{ env.LATEST_RELEASE }}"
-              }
-            }'
+          set -euo pipefail
+          for event_type in aur-publish homebrew-publish; do
+            curl -X POST \
+              -H "Accept: application/vnd.github.everest-preview+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/${{ github.repository }}/dispatches \
+              -d '{
+                "event_type": "'"${event_type}"'",
+                "client_payload": {
+                  "tag_name": "${{ env.LATEST_RELEASE }}",
+                  "release_url": "https://github.com/${{ github.repository }}/releases/tag/${{ env.LATEST_RELEASE }}"
+                }
+              }'
+          done
