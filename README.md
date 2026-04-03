@@ -1,94 +1,57 @@
 # LXGW WenKai Nerd Font
 
-**LXGW WenKai** patched with **Nerd Font** glyphs for enhanced terminal and coding experience.
+LXGW 文楷补全 Nerd Font 图标后的发布仓库。
 
-## Font Family
+English README: [README.en.md](README.en.md)
 
-This repository provides two variants of LXGW WenKai fonts:
+## 字体
 
-### LXGWWenKai Nerd Font (Proportional)
-- LXGWWenKaiNerdFont-Light.ttf
-- LXGWWenKaiNerdFont-Regular.ttf 
-- LXGWWenKaiNerdFont-Medium.ttf
+- 比例宽：`LXGWWenKai Nerd Font`
+- 等宽：`LXGWWenKaiMono Nerd Font`
+- 字重：`Light`、`Regular`、`Medium`
 
-### LXGWWenKaiMono Nerd Font (Monospace)
-- LXGWWenKaiMonoNerdFont-Light.ttf
-- LXGWWenKaiMonoNerdFont-Regular.ttf
-- LXGWWenKaiMonoNerdFont-Medium.ttf
+## 安装
 
-## Installation
-
-### Arch Linux (AUR)
-
-Install the fonts using your favorite AUR helper. The fonts are split into two separate packages:
+### AUR
 
 ```bash
-# Install proportional variant (LXGWWenKai Nerd Font)
 paru -S ttf-lxgw-wenkai-nerd
-
-# Install monospace variant (LXGWWenKaiMono Nerd Font)  
 paru -S ttf-lxgw-wenkai-mono-nerd
-
-# Or using yay
-yay -S ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd
 ```
 
-- **ttf-lxgw-wenkai-nerd**: Contains the proportional variants (Light, Regular, Medium)
-- **ttf-lxgw-wenkai-mono-nerd**: Contains the monospace variants (Light, Regular, Medium)
+- `ttf-lxgw-wenkai-nerd`：比例宽
+- `ttf-lxgw-wenkai-mono-nerd`：等宽
 
-Each AUR package downloads only its own release asset, so installing both variants no longer fetches the same archive twice.
-
-### macOS (Homebrew)
-
-Install the fonts from the custom tap:
+### Homebrew
 
 ```bash
-# Add the tap backed by the Yikai-Liao/homebrew-fonts repository
 brew tap Yikai-Liao/fonts
-
-# Install proportional variant
 brew install --cask font-lxgw-wenkai-nerd
-
-# Install monospace variant
 brew install --cask font-lxgw-wenkai-mono-nerd
 ```
 
-- `font-lxgw-wenkai-nerd`: Installs the proportional variants
-- `font-lxgw-wenkai-mono-nerd`: Installs the monospace variants
+### 手动安装
 
-### Manual Installation
+1. 在 [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases) 下载需要的压缩包。
+2. 可选资产：
+   - `lxgw-wenkai-nerd-<version>.zip` / `.tar.gz`：完整包
+   - `lxgw-wenkai-nerd-proportional-<version>.zip`：比例宽
+   - `lxgw-wenkai-nerd-mono-<version>.zip`：等宽
+3. 解压后安装 `.ttf` 文件：
+   - Linux：`~/.local/share/fonts/` 或 `/usr/share/fonts/`
+   - macOS：Font Book 安装
+   - Windows：右键安装
 
-1. Download the latest release from [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases)
-2. Choose one of the release assets:
-   - `lxgw-wenkai-nerd-<version>.zip` or `.tar.gz`: all font files
-   - `lxgw-wenkai-nerd-proportional-<version>.zip`: proportional only
-   - `lxgw-wenkai-nerd-mono-<version>.zip`: monospace only
-3. Extract the archive
-4. Install the font files:
-   - **Linux**: Copy TTF files to `~/.local/share/fonts/` or `/usr/share/fonts/`
-   - **Windows**: Right-click font files and select "Install"
-   - **macOS**: Double-click font files and click "Install Font"
+## 应用内字体名
 
-## Font Features
+- `LXGWWenKai Nerd Font`
+- `LXGWWenKaiMono Nerd Font`
 
-- **Chinese Support**: Excellent Chinese character coverage from LXGW WenKai
-- **Nerd Font Icons**: Complete set of developer-friendly icons and symbols
-- **Programming**: Optimized for coding with clear distinction between similar characters
-- **Multiple Weights**: Light, Regular, and Medium weights available
-- **Dual Variants**: Both proportional and monospace versions
+## 许可
 
-## Font Names in Applications
+本项目沿用 [SIL Open Font License 1.1](OFL.txt)。
 
-When selecting fonts in applications, use these names:
+## 致谢
 
-- **Proportional**: `LXGWWenKai Nerd Font`
-- **Monospace**: `LXGWWenKaiMono Nerd Font`
-
-## License
-
-This font is licensed under the [SIL Open Font License 1.1](OFL.txt).
-
-## Credits
-
-- **Original Font**: [LXGW WenKai](https://github.com/lxgw/LxgwWenKai) by [lxgw](https://github.com/lxgw)
-- **Nerd Font Patcher**: [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)
+- 原字体：[lxgw/LxgwWenKai](https://github.com/lxgw/LxgwWenKai)
+- 图标补丁：[ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts)
