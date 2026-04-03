@@ -38,6 +38,24 @@ yay -S ttf-lxgw-wenkai-nerd ttf-lxgw-wenkai-mono-nerd
 
 Each AUR package downloads only its own release asset, so installing both variants no longer fetches the same archive twice.
 
+### macOS (Homebrew)
+
+Install the fonts from the custom tap:
+
+```bash
+# Add the tap backed by the Yikai-Liao/homebrew-fonts repository
+brew tap Yikai-Liao/fonts
+
+# Install proportional variant
+brew install --cask font-lxgw-wenkai-nerd
+
+# Install monospace variant
+brew install --cask font-lxgw-wenkai-mono-nerd
+```
+
+- `font-lxgw-wenkai-nerd`: Installs the proportional variants
+- `font-lxgw-wenkai-mono-nerd`: Installs the monospace variants
+
 ### Manual Installation
 
 1. Download the latest release from [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases)

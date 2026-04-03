@@ -19,6 +19,11 @@ This directory contains scripts for automatically publishing AUR packages, used 
 - **Parameters**: `version` `source_dir`
 - **Features**: Produces versioned asset names for release publishing and downstream package managers
 
+### generate-homebrew-cask.sh
+- **Function**: Generate Homebrew Cask files for the external tap repository
+- **Parameters**: `token` `version` `sha256` `asset` `name` `desc` `tag` `archive_dir` `font_files...`
+- **Features**: Generates deterministic cask definitions that point to versioned GitHub Release assets
+
 ## Workflow
 
 The workflow uses the mature third-party Action `KSXGitHub/github-actions-deploy-aur@v4.1.1` to handle:
@@ -38,10 +43,18 @@ These scripts are automatically called through GitHub Actions workflow (aur-publ
 4. Generate PKGBUILD for both normal and mono variants (generate-pkgbuild.sh)
 5. Use third-party Action to publish to AUR
 
+For Homebrew publishing, the workflow will:
+
+1. Detect the latest version (resolve-tag.sh)
+2. Compute SHA256 for proportional and mono release assets
+3. Generate cask files (generate-homebrew-cask.sh)
+4. Push the updated casks to the external tap repository
+
 ## Permission Requirements
 
 - `AUR_SSH_PRIVATE_KEY`: SSH private key for AUR access (GitHub Secret)
 - `GITHUB_TOKEN`: GitHub API access token (automatically provided)
+- `HOMEBREW_TAP_PUSH_TOKEN`: GitHub token with contents write permission for `Yikai-Liao/homebrew-fonts`
 
 ## Advantages
 
