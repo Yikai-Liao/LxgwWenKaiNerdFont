@@ -6,6 +6,20 @@ command -v jq >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get instal
 
 TAG=""
 
+normalize_tag() {
+    local raw_tag="$1"
+
+    if [ -z "$raw_tag" ] || [ "$raw_tag" = "null" ]; then
+        return 0
+    fi
+
+    if [[ "$raw_tag" =~ ^[0-9] ]]; then
+        printf 'v%s\n' "$raw_tag"
+    else
+        printf '%s\n' "$raw_tag"
+    fi
+}
+
 # Try to get tag from release event
 if [ "${GITHUB_EVENT_NAME:-}" = 'release' ]; then 
     TAG="${RELEASE_TAG_NAME:-}"
@@ -22,27 +36,17 @@ if [ -z "$TAG" ] && [ "${GITHUB_EVENT_NAME:-}" = 'repository_dispatch' ]; then
     fi
 fi
 
-# Fallback to latest release
-if [ -z "$TAG" ]; then
-    echo "Query latest release via API..." >&2
-    TAG=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" \
-        -H 'Accept: application/vnd.github+json' \
-        "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" | jq -r .tag_name || true)
-    [ "$TAG" = "null" ] && TAG=""
-fi
-
-# Fallback to tags list
-if [ -z "$TAG" ]; then
-    echo "No releases; fallback to tags list..." >&2
-    TAG=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" \
-        -H 'Accept: application/vnd.github+json' \
-        "https://api.github.com/repos/$GITHUB_REPOSITORY/tags?per_page=100" \
-        | jq -r '.[].name' | grep -E '^[vV]?[0-9]' | sed 's/^v//' | sort -V | tail -n1)
-    [ -n "$TAG" ] && TAG="v$TAG"
+# Try to get tag from workflow_dispatch input
+if [ -z "$TAG" ] && [ "${GITHUB_EVENT_NAME:-}" = 'workflow_dispatch' ]; then
+    TAG=$(normalize_tag "${MANUAL_TAG_NAME:-}")
+    if [ -n "$TAG" ]; then
+        echo "Got tag from workflow_dispatch input: $TAG"
+    fi
 fi
 
 if [ -z "$TAG" ]; then 
-    echo "ERROR: Unable to determine tag automatically" >&2
+    echo "ERROR: Unable to determine tag." >&2
+    echo "release events must provide RELEASE_TAG_NAME, repository_dispatch must provide client_payload.tag_name, and workflow_dispatch must provide MANUAL_TAG_NAME." >&2
     exit 1
 fi
 

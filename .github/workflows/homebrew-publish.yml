@@ -6,6 +6,11 @@ on:
   repository_dispatch:
     types: [homebrew-publish]
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Release tag to publish, for example v1.522
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +37,7 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
           CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+          MANUAL_TAG_NAME: ${{ github.event.inputs.tag_name }}
         run: bash .github/scripts/resolve-tag.sh
 
       - name: Generate casks

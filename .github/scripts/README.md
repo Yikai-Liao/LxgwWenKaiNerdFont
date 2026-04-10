@@ -5,9 +5,10 @@ This directory contains scripts for automatically publishing AUR packages, used 
 ## Script Description
 
 ### resolve-tag.sh
-- **Function**: Automatically detect the latest git tag and corresponding package version
+- **Function**: Resolve the release tag and corresponding package version from workflow context
 - **Output**: `tag` and `pkgver` to GitHub Actions output
-- **Fallback Logic**: release event → latest release → tags list
+- **Tag Sources**: release event → repository_dispatch `client_payload.tag_name` → workflow_dispatch `tag_name`
+- **Safety**: no implicit fallback to `latest release`; manual runs must provide an explicit tag to avoid publishing stale release assets
 
 ### generate-pkgbuild.sh
 - **Function**: Generate PKGBUILD file for specified package
@@ -37,7 +38,7 @@ The workflow uses the mature third-party Action `KSXGitHub/github-actions-deploy
 
 These scripts are automatically called through GitHub Actions workflow (aur-publish.yml). When a new release is published, the workflow will:
 
-1. Detect latest version (resolve-tag.sh)
+1. Resolve the release tag from the triggering event (resolve-tag.sh)
 2. Get SHA256 of asset files (**without downloading** large files, avoiding AUR size limits)
 3. Download license file
 4. Generate PKGBUILD for both normal and mono variants (generate-pkgbuild.sh)
@@ -45,7 +46,7 @@ These scripts are automatically called through GitHub Actions workflow (aur-publ
 
 For Homebrew publishing, the workflow will:
 
-1. Detect the latest version (resolve-tag.sh)
+1. Resolve the release tag from the triggering event (resolve-tag.sh)
 2. Compute SHA256 for proportional and mono release assets
 3. Generate cask files (generate-homebrew-cask.sh)
 4. Push the updated casks to the external tap repository
