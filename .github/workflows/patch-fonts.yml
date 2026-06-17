@@ -141,6 +141,7 @@ jobs:
             - `lxgw-wenkai-nerd-${{ env.RELEASE_VERSION }}.tar.gz`: full bundle (tar.gz)
             - `lxgw-wenkai-nerd-proportional-${{ env.RELEASE_VERSION }}.zip`: proportional only
             - `lxgw-wenkai-nerd-mono-${{ env.RELEASE_VERSION }}.zip`: monospace only
+            - `fonts-lxgw-wenkai-nerd_${{ env.RELEASE_VERSION }}_all.deb`: Debian/Ubuntu package
 
             Font files:
             - LXGWWenKaiNerdFont-Light.ttf

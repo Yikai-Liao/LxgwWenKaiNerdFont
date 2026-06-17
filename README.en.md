@@ -30,6 +30,14 @@ brew install --cask font-lxgw-wenkai-nerd
 brew install --cask font-lxgw-wenkai-mono-nerd
 ```
 
+### Debian / Ubuntu
+
+Download the `.deb` package from [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases), then install it:
+
+```bash
+sudo apt install ./fonts-lxgw-wenkai-nerd_<version>_all.deb
+```
+
 ### Manual
 
 1. Download the required asset from [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases).
@@ -37,6 +45,7 @@ brew install --cask font-lxgw-wenkai-mono-nerd
    - `lxgw-wenkai-nerd-<version>.zip` / `.tar.gz`: full bundle
    - `lxgw-wenkai-nerd-proportional-<version>.zip`: proportional only
    - `lxgw-wenkai-nerd-mono-<version>.zip`: monospace only
+   - `fonts-lxgw-wenkai-nerd_<version>_all.deb`: Debian / Ubuntu package
 3. Extract and install the `.ttf` files:
    - Linux: `~/.local/share/fonts/` or `/usr/share/fonts/`
    - macOS: install with Font Book

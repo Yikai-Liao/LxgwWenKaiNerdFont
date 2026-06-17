@@ -36,8 +36,12 @@ done
     zip -qr "$OLDPWD/${mono_dir}.zip" "$mono_dir"
 )
 
+deb_asset=$(bash .github/scripts/build-deb-package.sh "$version" "$source_dir")
+deb_asset=$(basename "$deb_asset")
+
 printf '%s\n' \
     "${full_dir}.tar.gz" \
     "${full_dir}.zip" \
     "${proportional_dir}.zip" \
-    "${mono_dir}.zip"
+    "${mono_dir}.zip" \
+    "$deb_asset"

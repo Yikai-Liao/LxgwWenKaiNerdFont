@@ -30,6 +30,14 @@ brew install --cask font-lxgw-wenkai-nerd
 brew install --cask font-lxgw-wenkai-mono-nerd
 ```
 
+### Debian / Ubuntu
+
+在 [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases) 下载 `.deb` 后安装：
+
+```bash
+sudo apt install ./fonts-lxgw-wenkai-nerd_<version>_all.deb
+```
+
 ### 手动安装
 
 1. 在 [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases) 下载需要的压缩包。
@@ -37,6 +45,7 @@ brew install --cask font-lxgw-wenkai-mono-nerd
    - `lxgw-wenkai-nerd-<version>.zip` / `.tar.gz`：完整包
    - `lxgw-wenkai-nerd-proportional-<version>.zip`：比例宽
    - `lxgw-wenkai-nerd-mono-<version>.zip`：等宽
+   - `fonts-lxgw-wenkai-nerd_<version>_all.deb`：Debian / Ubuntu 安装包
 3. 解压后安装 `.ttf` 文件：
    - Linux：`~/.local/share/fonts/` 或 `/usr/share/fonts/`
    - macOS：Font Book 安装

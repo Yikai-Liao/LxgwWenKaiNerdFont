@@ -18,7 +18,12 @@ This directory contains scripts for automatically publishing AUR packages, used 
 ### package-release-assets.sh
 - **Function**: Split patched fonts into full/proportional/mono release bundles
 - **Parameters**: `version` `source_dir`
-- **Features**: Produces versioned asset names for release publishing and downstream package managers
+- **Features**: Produces versioned asset names for release publishing and downstream package managers, including a Debian/Ubuntu `.deb` package
+
+### build-deb-package.sh
+- **Function**: Build a Debian/Ubuntu package containing all patched font variants
+- **Parameters**: `version` `source_dir` `[output_dir]`
+- **Features**: Installs fonts under `/usr/share/fonts/truetype/lxgw-wenkai-nerd/`, includes OFL copyright metadata, and refreshes fontconfig cache after install/removal
 
 ### generate-homebrew-cask.sh
 - **Function**: Generate Homebrew Cask files for the external tap repository
