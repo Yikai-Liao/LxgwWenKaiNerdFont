@@ -1,3 +1,5 @@
+
+
 # LXGW WenKai Nerd Font
 
 LXGW 文楷补全 Nerd Font 图标后的发布仓库。
@@ -32,7 +34,7 @@ brew install --cask font-lxgw-wenkai-mono-nerd
 
 ### Debian / Ubuntu
 
-在 [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases) 下载 `.deb` 后安装：
+在 [Releases](https://github.com/Yikai-Liao/LxgwWenKaiNerdFont/releases) 下载 `.deb`（包含比例宽与等宽）后安装：
 
 ```bash
 sudo apt install ./fonts-lxgw-wenkai-nerd_<version>_all.deb
